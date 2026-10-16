@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# Keep the current branch on GitHub in sync after each local commit.
+branch=$(git symbolic-ref --quiet --short HEAD) || exit 0
+
+if ! git remote get-url origin >/dev/null 2>&1; then
+  echo "Auto-sync skipped: no 'origin' remote is configured." >&2
+  exit 0
+fi
+
+git push origin "$branch"

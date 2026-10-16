@@ -85,3 +85,6 @@ Then open `http://localhost:8000`.
 ## Design direction
 
 Forest green `#173D24`, warm ivory `#FAF8F1`, muted gold `#B68A43`, charcoal `#292D29`, Cormorant Garamond headings and Inter body text.
+# GitHub auto-sync
+
+The repository's `post-commit` hook pushes each local commit on the current branch to `origin`. Local edits still need to be committed before they sync. To commit all current changes and push them, run `./auto-sync.sh` from the project folder. The hook handles the push after the commit.
