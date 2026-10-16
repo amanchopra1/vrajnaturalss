@@ -1,0 +1,104 @@
+/* VRAJ NATURALS — responsive rules */
+@media (max-width: 1050px) {
+  .header-inner { width: calc(100% - 48px); gap: 18px; }
+  .primary-nav { gap: 18px; }
+  .header-shop-link { display: none; }
+  .hero-copy { padding-left: 40px; }
+  .hero-art, .hero-art-inner { min-height: 480px; }
+  .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .story-copy { padding: 55px; }
+  .subscription-form { gap: 35px; }
+  .contact-layout { gap: 55px; }
+  .journal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .article-layout { grid-template-columns: minmax(0, 1fr) 200px; gap: 34px; }
+}
+@media (max-width: 760px) {
+  body { font-size: 14px; }
+  .wrap, .section { width: calc(100% - 40px); }
+  .section { padding-block: 70px; }
+  .announcement-bar { font-size: 8px; letter-spacing: .08em; }
+  .header-inner { min-height: 72px; width: calc(100% - 36px); }
+  .brand-logo { width: 108px; height: 66px; }
+  .menu-toggle { display: inline-flex; align-items: center; gap: 8px; }
+  .primary-nav { display: none; position: absolute; top: 100%; left: 0; right: 0; padding: 20px 24px 26px; background: var(--ivory); border-bottom: 1px solid var(--line); flex-direction: column; align-items: stretch; gap: 0; box-shadow: var(--shadow-soft); }
+  .primary-nav.is-open { display: flex; }
+  .primary-nav a { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .header-actions { gap: 8px; }
+  .hero { grid-template-columns: 1fr; }
+  .hero-copy { padding: 70px 28px 55px; }
+  .hero h1 { font-size: clamp(3.6rem, 15vw, 5.2rem); }
+  .hero-note { margin-top: 35px; }
+  .hero-art { padding: 14px; min-height: 390px; }
+  .hero-art-inner { min-height: 390px; }
+  .sun-disc { width: 150px; }
+  .section-heading { display: block; margin-bottom: 30px; }
+  .section-heading h2 { margin-bottom: 18px; }
+  .section-intro { max-width: 380px; }
+  .section-heading-inline .text-link { margin-top: 25px; }
+  .collection-grid { grid-template-columns: 1fr; gap: 35px; }
+  .collection-visual { height: 300px; }
+  .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 25px 14px; }
+  .product-card-info h3 { font-size: 1.45rem; }
+  .card-pack-controls { grid-template-columns: 1fr; }
+  .product-meta { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .story-band { grid-template-columns: 1fr; }
+  .story-art { min-height: 330px; }
+  .story-circle { width: 220px; height: 220px; }
+  .story-copy { padding: 58px 28px; }
+  .subscription-banner { width: calc(100% - 40px); margin: 60px auto; padding: 35px 26px; display: block; }
+  .subscription-banner .button { margin-top: 26px; }
+  .footer-main { width: calc(100% - 40px); padding: 48px 0 30px; grid-template-columns: 1fr 1fr; gap: 32px 20px; }
+  .footer-brand { grid-column: 1 / -1; }
+  .footer-bottom { padding: 18px 20px; flex-direction: column; gap: 5px; }
+  .page-hero { padding: 75px 22px 55px; }
+  .page-hero h1 { font-size: clamp(3.2rem, 14vw, 4.6rem); }
+  .shop-toolbar { align-items: flex-start; flex-direction: column; }
+  .sort-label { width: 100%; justify-content: space-between; }
+  .sort-label select { flex: 1; max-width: 220px; }
+  .product-detail { grid-template-columns: 1fr; gap: 35px; padding-top: 25px; padding-bottom: 70px; }
+  .product-detail-art { min-height: 360px; }
+  .product-gallery-image { height: 320px; }
+  .large-placeholder { height: 270px; }
+  .story-content { grid-template-columns: 1fr; gap: 35px; padding-block: 65px; }
+  .story-values { gap: 14px; }
+  .story-values h3 { font-size: 1.35rem; }
+  .contact-layout { grid-template-columns: 1fr; gap: 40px; padding-block: 65px 80px; }
+  .contact-form { padding: 26px 20px; }
+  .journal-hero { padding: 75px 22px 58px; }
+  .journal-featured-card { grid-template-columns: 1fr; }
+  .journal-featured-image { min-height: 0; aspect-ratio: 16 / 10; }
+  .journal-featured-copy { padding: 30px 24px; }
+  .journal-list-section { padding-top: 45px; }
+  .journal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 14px; }
+  .journal-card-content { padding: 16px 14px 18px; }
+  .journal-card h3 { font-size: 1.4rem; }
+  .journal-card-content > p { min-height: 0; }
+  .article-hero { padding: 65px 22px 36px; }
+  .article-feature-image { width: calc(100% - 40px); }
+  .article-feature-image img { max-height: 360px; }
+  .article-layout { display: flex; flex-direction: column; gap: 32px; padding-top: 42px; padding-bottom: 65px; }
+  .article-content { font-size: 14px; }
+  .article-content h2 { font-size: 2rem; }
+  .article-sidebar { position: static; width: 100%; }
+  .legal-content { padding-top: 35px; }
+  .subscription-section { padding-top: 45px; }
+  .subscription-form { grid-template-columns: 1fr; gap: 40px; }
+  .order-summary { position: static; grid-row: 1; }
+  .form-fields { grid-template-columns: 1fr; }
+  .full-field { grid-column: auto; }
+  .subscription-product { grid-template-columns: 1fr 1fr; align-items: end; gap: 12px; }
+  .subscription-product-name { grid-column: 1 / -1; }
+  .subscription-pack-size, .subscription-pack-count { min-width: 0; }
+  .form-step h2 { font-size: 1.9rem; }
+}
+@media (max-width: 390px) {
+  .brand-logo { width: 92px; height: 58px; }
+  .menu-toggle { padding: 8px; font-size: 11px; }
+  .hero-actions { align-items: flex-start; flex-direction: column; gap: 20px; }
+  .product-grid { gap: 22px 10px; }
+  .product-card-info h3 { font-size: 1.3rem; }
+  .filter-pill { padding: 8px 11px; }
+}
+@media (max-width: 540px) {
+  .journal-grid { grid-template-columns: 1fr; }
+}

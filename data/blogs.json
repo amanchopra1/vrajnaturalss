@@ -1,0 +1,88 @@
+{
+  "articles": [
+    {
+      "id": "sona-moti-wheat",
+      "title": "Sona Moti Wheat: Understanding This Traditional Grain",
+      "slug": "sonamotiwhytoeat",
+      "excerpt": "A practical guide to Sona Moti wheat, what to ask about its source and milling, and simple ways to use the flour at home.",
+      "image": "products/sona-moti-front-1-2kg.webp",
+      "category": "Traditional Grains",
+      "author": "Vraj Naturals Editorial",
+      "date": "2026-10-16",
+      "featured": true,
+      "url": "/blogs/sonamotiwhytoeat.html"
+    },
+    {
+      "id": "traditional-grains",
+      "title": "What Makes Traditional Grains Different?",
+      "slug": "traditionalgrains",
+      "excerpt": "Grain varieties, local growing conditions, milling and cooking all shape what reaches your kitchen. Here are useful questions to ask.",
+      "image": "products/jau-front.webp",
+      "category": "Traditional Grains",
+      "author": "Vraj Naturals Editorial",
+      "date": "2026-10-08",
+      "featured": false,
+      "url": "/blogs/traditionalgrains.html"
+    },
+    {
+      "id": "farm-to-kitchen",
+      "title": "From Farm to Kitchen: How Our Food Is Produced",
+      "slug": "farmtokitchen",
+      "excerpt": "Follow the general steps behind a grain product, from harvest and cleaning to milling, packing and the questions worth asking a seller.",
+      "image": "products/sharbati-front-5-10kg.webp",
+      "category": "Farming & Farmers",
+      "author": "Vraj Naturals Editorial",
+      "date": "2026-09-30",
+      "featured": false,
+      "url": "/blogs/farmtokitchen.html"
+    },
+    {
+      "id": "understanding-bajra",
+      "title": "Understanding Pearl Millet (Bajra)",
+      "slug": "understandingbajra",
+      "excerpt": "Get to know pearl millet, its place in Indian food traditions, and a few simple ways to bring bajra flour into everyday cooking.",
+      "image": "products/bajra-front.png",
+      "category": "Food & Nutrition",
+      "author": "Vraj Naturals Editorial",
+      "date": "2026-09-22",
+      "featured": false,
+      "url": "/blogs/understandingbajra.html"
+    },
+    {
+      "id": "storing-grains",
+      "title": "Simple Ways to Store Grains Properly",
+      "slug": "storinggrains",
+      "excerpt": "A few careful storage habits help protect the quality of dry grains and flours in a home pantry.",
+      "image": "products/daliya-front.webp",
+      "category": "Craftsmanship & Sustainability",
+      "author": "Vraj Naturals Editorial",
+      "date": "2026-09-14",
+      "featured": false,
+      "url": "/blogs/storinggrains.html"
+    },
+    {
+      "id": "traditional-food-practices",
+      "title": "Traditional Food Practices for Everyday Living",
+      "slug": "traditionalfoodpractices",
+      "excerpt": "Explore practical kitchen habits passed between generations, from planning and preparation to making familiar foods your own.",
+      "image": "products/moong-front.webp",
+      "category": "Recipes & Cooking",
+      "author": "Vraj Naturals Editorial",
+      "date": "2026-09-06",
+      "featured": false,
+      "url": "/blogs/traditionalfoodpractices.html"
+    },
+    {
+      "id": "natural-farming",
+      "title": "Understanding Natural Farming: Questions to Ask",
+      "slug": "naturalfarming",
+      "excerpt": "A grounded guide to asking about farming methods, inputs and supporting details when a product is described as naturally grown.",
+      "image": "products/jau-back.webp",
+      "category": "Natural Farming",
+      "author": "Vraj Naturals Editorial",
+      "date": "2026-08-29",
+      "featured": false,
+      "url": "/blogs/naturalfarming.html"
+    }
+  ]
+}

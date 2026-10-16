@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Build a recurring pantry order with Vraj Naturals.">
+  <title>Pantry Subscriptions | Vraj Naturals</title>
+  <link rel="icon" type="image/webp" href="/images/vraj-naturals-logo.webp">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/responsive.css"><script src="/js/script.js" defer></script>
+</head>
+<body><header data-site-header></header><main>
+  <section class="page-hero subscription-page-hero"><p class="eyebrow">NATURAL FOOD FOR EVERYDAY LIVING</p><h1>Your pantry,<br><em>on your schedule.</em></h1><p>Subscription rates are lower per kg to help keep natural food within reach. Choose your packs and delivery rhythm.</p></section>
+  <section class="section subscription-section">
+    <form class="subscription-form" id="subscription-form">
+      <div class="form-main">
+        <div class="form-step"><span class="step-number">01</span><div><h2>Build your order</h2><p>Subscription rates are shown per kg. Choose 1, 2, 5 or 10 kg to see the per-pack price, then choose how many packs you need.</p></div></div>
+        <div class="subscription-products" data-subscription-products></div>
+        <div class="form-step"><span class="step-number">02</span><div><h2>Choose your schedule</h2><p>Your recurring amount will be based on this selection.</p></div></div>
+        <label class="field-label" for="frequency">Repeat every</label><select id="frequency" name="frequency" required><option value="weekly">Week</option><option value="fortnightly" selected>2 weeks</option><option value="monthly">Month</option></select>
+        <div class="form-step form-step-spaced"><span class="step-number">03</span><div><h2>Delivery details</h2><p>We need these details to coordinate fulfilment.</p></div></div>
+        <div class="form-fields">
+          <label class="field-label">Full name<input name="name" autocomplete="name" required maxlength="100"></label>
+          <label class="field-label">Email address<input name="email" type="email" autocomplete="email" required maxlength="150"></label>
+          <label class="field-label">Phone number<input name="phone" type="tel" autocomplete="tel" inputmode="tel" required pattern="[0-9+() -]{8,20}" maxlength="20"></label>
+          <label class="field-label full-field">Address line 1<input name="address1" autocomplete="address-line1" required maxlength="200"></label>
+          <label class="field-label full-field">Address line 2 (optional)<input name="address2" autocomplete="address-line2" maxlength="200"></label>
+          <label class="field-label">City<input name="city" autocomplete="address-level2" required maxlength="100"></label>
+          <label class="field-label">State<input name="state" autocomplete="address-level1" required maxlength="100"></label>
+          <label class="field-label">PIN code<input name="postalCode" autocomplete="postal-code" inputmode="numeric" required pattern="[0-9]{6}" maxlength="6"></label>
+          <label class="field-label">Country<input name="country" value="India" autocomplete="country-name" required maxlength="60"></label>
+        </div>
+        <label class="consent-check"><input type="checkbox" name="consent" required><span>I understand this is a recurring payment authorisation and agree to the <a href="/terms.html">Terms</a> and <a href="/privacy-policy.html">Privacy Policy</a>.</span></label>
+        <div class="form-status" data-subscription-status role="status" aria-live="polite"></div>
+        <button class="button button-primary submit-button" type="submit">Continue to secure payment <span aria-hidden="true">↗</span></button>
+        <p class="form-disclaimer">The payment step is not live until Razorpay credentials, plans, eligible recurring-payment methods, and the Worker endpoint are configured and tested. Do not submit real customer data on a demo deployment.</p>
+      </div>
+      <aside class="order-summary"><p class="eyebrow">YOUR SELECTION</p><h2>Order summary</h2><div data-subscription-summary><p class="muted">Select products to see your estimate.</p></div><div class="summary-total"><span>Estimated recurring total</span><strong data-subscription-total>₹0</strong></div><p class="summary-frequency" data-summary-frequency>Every 2 weeks</p><p class="summary-note">Shipping, taxes and final subscription terms must be confirmed before launch.</p></aside>
+    </form>
+  </section>
+</main><footer data-site-footer></footer></body></html>

@@ -1,0 +1,12 @@
+name = "vraj-naturals-payments"
+main = "src/index.js"
+compatibility_date = "2026-10-16"
+
+# Set these in the Cloudflare dashboard or with `wrangler secret put`.
+# Do not put API secrets in this file.
+[vars]
+ALLOWED_ORIGIN = "https://YOUR-PRODUCTION-DOMAIN.example"
+# Add the relevant plan IDs only after configuring and testing Razorpay plans:
+# RAZORPAY_PLAN_WEEKLY = "plan_..."
+# RAZORPAY_PLAN_FORTNIGHTLY = "plan_..."
+# RAZORPAY_PLAN_MONTHLY = "plan_..."
