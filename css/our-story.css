@@ -1,0 +1,83 @@
+.our-story-page main { overflow: clip; }
+.our-story-page .our-story-feature {
+  width: 100%;
+  max-width: none;
+  min-height: clamp(620px, calc(100svh - 150px), 780px);
+  margin: 0;
+  padding: 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  background: var(--green);
+}
+.our-story-page .our-story-image { width: 100%; min-height: 0; height: auto; aspect-ratio: auto; margin: 0; overflow: visible; background: #e9e5da; }
+.our-story-page .our-story-image img { display: block; width: 100%; height: auto; object-fit: contain; }
+.our-story-page .our-story-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(40px, 4.4vw, 76px);
+  background: var(--green);
+  color: var(--ivory);
+}
+.story-community { width: min(1500px, calc(100% - 80px)); margin: 0 auto; padding: clamp(56px, 8vw, 110px) 0 0; }
+.story-community-image { margin: 0; background: #e9e5da; }
+.story-community-image img { display: block; width: 100%; height: auto; object-fit: contain; }
+.our-story-page .our-story-copy .eyebrow { margin: 0 0 22px; color: var(--gold-light); }
+.our-story-page .our-story-copy h1 {
+  max-width: 760px;
+  margin: 0 0 24px;
+  color: var(--ivory);
+  font-size: clamp(2.8rem, 3.4vw, 3.75rem);
+  line-height: 1.02;
+  letter-spacing: -.035em;
+}
+.our-story-page .our-story-copy p:not(.eyebrow) { max-width: 680px; margin: 0 0 15px; color: #e1e5d9; font-size: 14px; line-height: 1.7; }
+.our-story-page .our-story-copy p:last-child { margin-bottom: 0; }
+.founder-note {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: clamp(44px, 8vw, 120px);
+  width: min(1280px, calc(100% - 80px));
+  margin: 0 auto;
+  padding: clamp(84px, 11vw, 160px) 0;
+}
+.founder-note-photo { margin: 0; overflow: hidden; background: #e9e5da; aspect-ratio: 1 / 1; }
+.founder-note-photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+.founder-note-copy { max-width: 620px; }
+.founder-note-copy .eyebrow { margin: 0 0 20px; color: var(--gold); }
+.founder-note-copy h2 { margin: 0 0 20px; color: var(--green); font: 500 clamp(2.7rem, 4.5vw, 4.7rem)/.98 var(--serif); letter-spacing: -.025em; }
+.founder-name { margin: 0 0 25px; color: var(--green); font: 600 15px/1.5 var(--sans); }
+.founder-name span { display: block; margin-top: 3px; color: #777a70; font-size: 11px; font-weight: 400; letter-spacing: .04em; }
+.founder-note-copy blockquote { margin: 0; padding: 0; color: #626960; font: 400 clamp(1.2rem, 1.8vw, 1.55rem)/1.7 var(--serif); }
+.founder-link { display: inline-flex; align-items: center; gap: 10px; margin-top: 30px; padding-bottom: 7px; border-bottom: 1px solid var(--gold); color: var(--green); font-size: 11px; font-weight: 600; letter-spacing: .04em; }
+.founder-link span { color: var(--gold); font-size: 17px; transition: transform .2s ease; }
+.founder-link:hover span { transform: translateX(4px); }
+.founder-link:focus-visible { outline: 2px solid var(--green); outline-offset: 5px; }
+.our-story-page .story-cta { padding: clamp(72px, 9vw, 120px) 24px; }
+@media (max-width: 900px) {
+  .our-story-page .our-story-feature { min-height: 0; grid-template-columns: 1fr; }
+  .our-story-page .our-story-image { min-height: 0; }
+  .our-story-page .our-story-copy { padding: 58px 42px; }
+  .our-story-page .our-story-copy h1 { font-size: clamp(3rem, 6.5vw, 4.5rem); }
+  .founder-note { width: calc(100% - 56px); gap: 44px; }
+}
+@media (min-width: 681px) and (max-width: 1050px) {
+  .our-story-page .our-story-copy { padding: 42px 38px; }
+  .our-story-page .our-story-copy h1 { font-size: clamp(2.8rem, 4.8vw, 3.7rem); }
+}
+@media (max-width: 680px) {
+  .our-story-page .our-story-feature { grid-template-columns: 1fr; }
+  .our-story-page .our-story-image { min-height: 0; height: auto; aspect-ratio: auto; }
+  .our-story-page .our-story-copy { padding: 54px 26px 62px; }
+  .our-story-page .our-story-copy h1 { margin-bottom: 24px; font-size: clamp(3.05rem, 12.5vw, 4.5rem); }
+  .our-story-page .our-story-copy p:not(.eyebrow) { font-size: 13px; }
+  .story-community { width: calc(100% - 40px); padding-top: 50px; }
+  .founder-note { grid-template-columns: 1fr; gap: 32px; width: calc(100% - 40px); padding: 72px 0 82px; }
+  .founder-note-photo { aspect-ratio: 1 / 1; }
+  .founder-note-copy h2 { font-size: clamp(2.9rem, 11vw, 4rem); }
+  .founder-note-copy blockquote { font-size: 1.22rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .founder-link span { transition: none; }
+}
