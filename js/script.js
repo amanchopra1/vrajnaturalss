@@ -56,7 +56,7 @@
           <img class="brand-logo" src="/images/vraj-naturals-logo.webp" alt="Vraj Naturals">
         </a>
         <nav class="primary-nav" id="primary-navigation" aria-label="Main navigation">
-          ${links.map(([label, href, pages]) => `<a href="${href}" ${pages.includes(active) ? 'aria-current="page"' : ""}>${label}</a>`).join("")}
+          ${links.map(([label, href, pages]) => `<a href="${href}" ${label === "The Vraj Circle" ? 'data-open-vraj-circle' : ""} ${pages.includes(active) ? 'aria-current="page"' : ""}>${label}</a>`).join("")}
         </nav>
         <div class="header-actions"><a class="header-shop-link" href="/shop.html">Explore collection ↗</a><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation"><span aria-hidden="true">☰</span> Menu</button></div>
       </div>`;
