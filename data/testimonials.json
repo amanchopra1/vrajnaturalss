@@ -1,0 +1,50 @@
+[
+  {
+    "id": "testimonial-001",
+    "name": "HG Gopalini Priya Darshini Mataji",
+    "location": "IIT Mandi",
+    "product": "Sona Moti Atta",
+    "quote": "The atta was very bhurbhura, and I liked it very much.",
+    "active": true
+  },
+  {
+    "id": "testimonial-002",
+    "name": "Akshanshu",
+    "location": "Dehradun",
+    "product": "Atta",
+    "quote": "It tastes just like the atta we used to eat in the villages years ago — exactly like that.",
+    "active": true
+  },
+  {
+    "id": "testimonial-003",
+    "name": "Ruchi Mataji",
+    "location": "Agra",
+    "product": "Atta",
+    "quote": "The rotis were very tasty. Everyone at home enjoyed them. The atta felt quite different from regular atta.",
+    "active": true
+  },
+  {
+    "id": "testimonial-004",
+    "name": "Nidhi",
+    "location": "Bengaluru",
+    "product": "Atta",
+    "quote": "It felt very fresh and naturally made. Compared with regular atta, the rotis turned out noticeably browner. I did find it required a little more effort while making the rotis. For now, we’ve been mixing the two.",
+    "active": true
+  },
+  {
+    "id": "testimonial-005",
+    "name": "Mridul",
+    "location": "Indore",
+    "product": "Atta",
+    "quote": "There is a different taste to it. Everyone at home liked it. The rotis are holding together beautifully, with an authentic taste we remember from earlier — like we used to have with ghee and sugar.",
+    "active": true
+  },
+  {
+    "id": "testimonial-006",
+    "name": "Sakshi",
+    "location": "Fatehabad",
+    "product": "Atta",
+    "quote": "The atta is very soft to knead, and the chapatis turn out very well. The dough itself was soft and easy to work with.",
+    "active": true
+  }
+]

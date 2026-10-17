@@ -7,6 +7,7 @@ const ORDERS_SHEET_ID = "1SAlMmmOOQjBfo0seiMzYf_gbo5eFBoZJulfdPt1XNTo";
 const ORDERS_TAB = "Orders";
 const PAYMENT_EVENTS_TAB = "Payment Events";
 const ORDER_OWNER_EMAIL = "info@vrajnaturals.com";
+const CUSTOMER_SENDER_EMAIL = "vrajnaturals@gmail.com";
 const ORDER_REMINDER_DELAY_MS = 24 * 60 * 1000;
 const ORDER_HEADERS = [
   "Order ID", "Local Request ID", "Created At (UTC)", "Updated At (UTC)",
@@ -184,11 +185,12 @@ function applyPaymentStatus_(sheet, row, event, now) {
     const sentId = String(sheet.getRange(row, 26).getValue() || "");
     const emailEventId = String(event.paymentId || event.eventId);
     if (sentId !== emailEventId) {
-      try { sendOrderEmail_(sheet, row, "success", event); }
+      let customerEmailSent = false;
+      try { customerEmailSent = sendOrderEmail_(sheet, row, "success", event); }
       catch (error) { console.error("Customer success email failed: " + error.message); }
       try { sendOwnerOrderNotice_(sheet, row, oneTimeOrder ? "One-time order payment confirmed" : "Subscription payment confirmed", eventType); }
       catch (error) { console.error("Owner payment notice failed: " + error.message); }
-      sheet.getRange(row, 26).setValue(orderCell_(emailEventId));
+      if (customerEmailSent) sheet.getRange(row, 26).setValue(orderCell_(emailEventId));
     }
     return "Payment success recorded";
   }
@@ -202,12 +204,13 @@ function applyPaymentStatus_(sheet, row, event, now) {
     sheet.getRange(row, 30).setValue(orderCell_(failureReason));
     const emailEventId = String(event.paymentId || event.eventId);
     if (String(sheet.getRange(row, 27).getValue() || "") !== emailEventId) {
-      try { sendOrderEmail_(sheet, row, "failed", event); }
+      let customerEmailSent = false;
+      try { customerEmailSent = sendOrderEmail_(sheet, row, "failed", event); }
       catch (error) { console.error("Customer failure email failed: " + error.message); }
       const oneTimeOrder = String(sheet.getRange(row, 18).getValue() || "") === "One-time order";
       try { sendOwnerOrderNotice_(sheet, row, oneTimeOrder ? "One-time order payment failed" : "Subscription payment failed", failureReason || eventType); }
       catch (error) { console.error("Owner payment failure notice failed: " + error.message); }
-      sheet.getRange(row, 27).setValue(orderCell_(emailEventId));
+      if (customerEmailSent) sheet.getRange(row, 27).setValue(orderCell_(emailEventId));
     }
     return "Payment failure recorded";
   }
@@ -242,12 +245,15 @@ function sendOrderEmail_(sheet, row, kind, event) {
   const body = [
     "Hello " + order.name + ",", "",
     intro,
-    "", "Order reference: " + order.orderId, "Items:", order.itemLines,
+    "", "ORDER SUMMARY", "Order reference: " + order.orderId,
+    "", "Items", order.itemLines,
+    "Product subtotal: ₹" + formatInr_(order.productsSubtotal),
+    "Delivery fee: ₹" + formatInr_(order.deliveryFee),
     "Delivery address: " + order.address,
     (oneTimeOrder ? "Order total: ₹" : "Recurring total: ₹") + formatInr_(order.total) + (oneTimeOrder ? "" : " per delivery"),
     oneTimeOrder ? "Order type: One-time purchase" : "Schedule: " + order.frequency,
     event.paymentId ? "Payment reference: " + event.paymentId : "",
-    event.checkoutUrl || order.checkoutUrl ? "Checkout: " + (event.checkoutUrl || order.checkoutUrl) : "",
+    !successful && (event.checkoutUrl || order.checkoutUrl) ? "Retry checkout: " + (event.checkoutUrl || order.checkoutUrl) : "",
     "", "Questions? Email info@vrajnaturals.com.", "Vraj Naturals"
   ].filter(Boolean).join("\n");
   const itemRows = order.itemsList.map(item => "<tr>" +
@@ -259,12 +265,41 @@ function sendOrderEmail_(sheet, row, kind, event) {
     "<p>Hello " + escapeHtml_(order.name) + ",</p><p>" + escapeHtml_(intro) + "</p>" +
     "<p><strong>Order reference:</strong> " + escapeHtml_(order.orderId) + "</p>" +
     "<table style=\"border-collapse:collapse;width:100%;font-size:14px\"><thead><tr style=\"background:#f5f2e9;text-align:left\"><th style=\"padding:10px\">Item</th><th style=\"padding:10px;text-align:center\">Pack</th><th style=\"padding:10px;text-align:right\">Amount</th></tr></thead><tbody>" + itemRows + "</tbody></table>" +
-    "<p><strong>" + (oneTimeOrder ? "Order total:" : "Total per delivery:") + "</strong> ₹" + formatInr_(order.total) + (oneTimeOrder ? "" : "<br><strong>Schedule:</strong> " + escapeHtml_(order.frequency)) + "</p>" +
+    "<p><strong>Product subtotal:</strong> ₹" + formatInr_(order.productsSubtotal) + "<br><strong>Delivery fee:</strong> ₹" + formatInr_(order.deliveryFee) + "<br><strong>" + (oneTimeOrder ? "Order total:" : "Total per delivery:") + "</strong> ₹" + formatInr_(order.total) + (oneTimeOrder ? "" : "<br><strong>Schedule:</strong> " + escapeHtml_(order.frequency)) + "</p>" +
     "<p><strong>Delivery address:</strong><br>" + escapeHtml_(order.address) + "</p>" +
     (event.paymentId ? "<p><strong>Payment reference:</strong> " + escapeHtml_(event.paymentId) + "</p>" : "") +
-    ((event.checkoutUrl || order.checkoutUrl) ? "<p><a href=\"" + escapeHtml_(event.checkoutUrl || order.checkoutUrl) + "\">Open subscription checkout</a></p>" : "") +
+    (!successful && (event.checkoutUrl || order.checkoutUrl) ? "<p><a href=\"" + escapeHtml_(event.checkoutUrl || order.checkoutUrl) + "\">Retry checkout securely</a></p>" : "") +
     "<p>Questions? Email <a href=\"mailto:info@vrajnaturals.com\">info@vrajnaturals.com</a>.</p><p>Vraj Naturals</p></div>";
-  MailApp.sendEmail({ to: order.email, subject, body, htmlBody, name: "Vraj Naturals", replyTo: ORDER_OWNER_EMAIL });
+  sendCustomerEmail_({ to: order.email, subject, body, htmlBody });
+  return true;
+}
+
+/** Send customer-facing mail from the verified Vraj Naturals Gmail alias. */
+function sendCustomerEmail_(message) {
+  const sender = CUSTOMER_SENDER_EMAIL.toLowerCase();
+  const effectiveUser = String(Session.getEffectiveUser().getEmail() || "").toLowerCase();
+  const aliases = GmailApp.getAliases().map(email => String(email).toLowerCase());
+  if (effectiveUser !== sender && !aliases.includes(sender)) {
+    throw new Error("Add and verify " + CUSTOMER_SENDER_EMAIL + " as a Gmail Send mail as alias for the Apps Script owner, then retry.");
+  }
+  GmailApp.sendEmail(message.to, message.subject, message.body, {
+    htmlBody: message.htmlBody,
+    from: CUSTOMER_SENDER_EMAIL,
+    name: "Vraj Naturals",
+    replyTo: CUSTOMER_SENDER_EMAIL
+  });
+}
+
+/** Run once manually to authorize Gmail sending and verify the branded alias. */
+function authorizeCustomerSender_() {
+  const sender = CUSTOMER_SENDER_EMAIL.toLowerCase();
+  const effectiveUser = String(Session.getEffectiveUser().getEmail() || "").toLowerCase();
+  const aliases = GmailApp.getAliases().map(email => String(email).toLowerCase());
+  if (effectiveUser !== sender && !aliases.includes(sender)) {
+    throw new Error("The verified sender alias " + CUSTOMER_SENDER_EMAIL + " is not available to this script owner.");
+  }
+  console.log("Customer sender is ready: " + CUSTOMER_SENDER_EMAIL);
+  return true;
 }
 
 function sendOwnerOrderNotice_(sheet, row, subject, detail) {
@@ -317,14 +352,15 @@ function sendAbandonedCheckoutReminders_() {
       const checkoutUrl = String(rows[i][27] || "");
       if (status !== "Checkout started" || !optedIn || reminderSent || !checkoutUrl || !Number.isFinite(created) || now - created < ORDER_REMINDER_DELAY_MS) continue;
       const order = orderRecord_(sheet, row);
-      MailApp.sendEmail({
+      sendCustomerEmail_({
         to: order.email,
         subject: "Your Vraj Naturals checkout is waiting",
         body: ["Hello " + order.name + ",", "", "You started a pantry subscription checkout but did not complete it.",
-          "Your selected items:", order.itemLines, "Recurring total: ₹" + formatInr_(order.total) + " per delivery",
+          "", "YOUR SELECTION", order.itemLines, "", "Product subtotal: ₹" + formatInr_(order.productsSubtotal),
+          "Delivery fee: ₹" + formatInr_(order.deliveryFee), "Recurring total: ₹" + formatInr_(order.total) + " per delivery",
           "Continue securely with Razorpay: " + checkoutUrl, "", "If you no longer want this subscription, you can ignore this email.",
           "Questions? Email info@vrajnaturals.com.", "Vraj Naturals"].join("\n"),
-        name: "Vraj Naturals", replyTo: ORDER_OWNER_EMAIL
+        htmlBody: "<div style=\"font-family:Arial,sans-serif;color:#292d29;line-height:1.6;max-width:640px;margin:auto\"><h1 style=\"color:#173d24\">Your checkout is waiting</h1><p>Hello " + escapeHtml_(order.name) + ",</p><p>You started a pantry subscription checkout but did not complete it.</p><h2 style=\"font-size:16px;color:#173d24\">Your selection</h2><ul>" + order.itemsList.map(item => "<li>" + escapeHtml_(item.name || item.id || "Item") + " — " + Number(item.weightKg || 0) + " kg × " + Number(item.packs || 0) + " pack(s) — ₹" + formatInr_(item.lineTotal) + "</li>").join("") + "</ul><p>Product subtotal: ₹" + formatInr_(order.productsSubtotal) + "<br>Delivery fee: ₹" + formatInr_(order.deliveryFee) + "<br><strong>Recurring total: ₹" + formatInr_(order.total) + " per delivery</strong></p><p><a href=\"" + escapeHtml_(checkoutUrl) + "\" style=\"display:inline-block;background:#173d24;color:#fff;padding:12px 18px;text-decoration:none\">Continue securely with Razorpay</a></p><p>If you no longer want this subscription, you can ignore this email.</p><p>Questions? Email <a href=\"mailto:info@vrajnaturals.com\">info@vrajnaturals.com</a>.</p><p>Vraj Naturals</p></div>"
       });
       sheet.getRange(row, 25).setValue(new Date().toISOString());
       sheet.getRange(row, 4).setValue(new Date().toISOString());
