@@ -2,23 +2,26 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Choose a Vraj Naturals pantry subscription with natural food priced close to market rates and a flat ₹149 delivery fee per delivery.">
+  <meta name="description" content="Choose a Vraj Naturals pantry subscription with natural food priced close to market rates and delivery calculated by order weight.">
   <title>Pantry Subscriptions | Vraj Naturals</title>
   <link rel="icon" type="image/webp" href="/images/vraj-naturals-logo.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=20261017-03"><link rel="stylesheet" href="/css/responsive.css?v=20261017-03"><script src="/js/script.js?v=20261017-04" defer></script><script src="/js/vraj-circle.js?v=20261017-03" defer></script>
+  <link rel="stylesheet" href="/css/style.css?v=20261017-07"><link rel="stylesheet" href="/css/responsive.css?v=20261017-03"><link rel="stylesheet" href="/css/subscription-hero.css?v=20261017-01"><script src="/js/script.js?v=20261017-12" defer></script><script src="/js/vraj-circle.js?v=20261017-03" defer></script>
   <meta property="og:title" content="Pantry Subscriptions | Vraj Naturals">
-  <meta property="og:description" content="Choose a Vraj Naturals pantry subscription with natural food priced close to market rates and a flat ₹149 delivery fee per delivery.">
+  <meta property="og:description" content="Choose a Vraj Naturals pantry subscription with natural food priced close to market rates and delivery calculated by order weight.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Vraj Naturals">
   <link rel="canonical" href="https://vrajnaturals.com/subscriptions.html">
   <meta property="og:url" content="https://vrajnaturals.com/subscriptions.html">
-  <meta property="og:image" content="https://vrajnaturals.com/images/products/sharbati-front-5-10kg.webp">
-  <meta property="og:image:alt" content="Vraj Naturals — Goodness, Rooted in Nature.">
+  <meta property="og:image" content="https://vrajnaturals.com/images/pantry-hero.webp">
+  <meta property="og:image:alt" content="Vraj Naturals pantry of grain and pulse essentials.">
 </head>
 <body><header data-site-header class="site-header"><div class="header-inner fallback-header-inner"><a class="brand" href="/" aria-label="Vraj Naturals home"><img class="brand-logo" src="/images/vraj-naturals-logo.webp" alt="Vraj Naturals"></a><nav class="fallback-nav" aria-label="Main navigation"><a href="https://vrajnaturals.com/">Home</a><a href="/shop.html">Shop</a><a href="/subscriptions.html">Subscriptions</a><a href="/blogs.html">Journal</a><a href="/our-story.html">Our Story</a><a href="/contact.html">Contact</a><a href="#join-vraj-circle" data-open-vraj-circle>The Vraj Circle</a></nav></div></header><main>
-  <section class="page-hero subscription-page-hero"><p class="eyebrow">NATURAL FOOD FOR EVERYDAY LIVING</p><h1>From Our Soil<br><em>to Your Home.</em></h1><p>Naturally grown staples, rooted in traditional farming. From our land and farmer network to your home, bringing you closer to the source of your food.</p></section>
+  <section class="subscription-page-hero" aria-labelledby="subscription-hero-heading">
+    <figure class="subscription-hero-image"><img src="/images/pantry-hero.webp" alt="Vraj Naturals packs of Bajra Atta, Basmati Rice, Sona Moti Atta, Whole Moong and Daliya arranged in a pantry." width="1774" height="887" fetchpriority="high"></figure>
+    <div class="subscription-hero-copy"><p class="eyebrow">NATURAL FOOD FOR EVERYDAY LIVING</p><h1 id="subscription-hero-heading">FROM OUR SOIL TO YOUR HOME</h1><p class="subscription-hero-promise">100% Natural. Zero Preservatives.</p><p>Your pantry, your schedule. Choose your essentials and delivery frequency. We’ll take care of the rest.</p></div>
+  </section>
   <section class="section subscription-section">
     <form class="subscription-form" id="subscription-form">
       <div class="form-main">
@@ -40,17 +43,17 @@
         </div>
         <label class="consent-check"><input type="checkbox" name="consent" required><span>I understand this is a recurring payment authorisation and agree to the <a href="/terms.html">Terms</a> and <a href="/privacy-policy.html">Privacy Policy</a>.</span></label>
         <div class="form-status" data-subscription-status role="status" aria-live="polite"></div>
-        <button class="button button-primary submit-button" type="submit" disabled><span data-submit-label>Continue to secure payment</span> <span data-submit-arrow aria-hidden="true">↗</span><span class="submit-spinner" data-submit-spinner aria-hidden="true"></span></button>
+        <button class="button button-primary submit-button" type="submit" disabled><span data-submit-label>Continue to secure payment</span> <span data-submit-arrow aria-hidden="true"></span><span class="submit-spinner" data-submit-spinner aria-hidden="true" hidden></span></button>
         <p class="form-disclaimer" data-checkout-disclaimer>Secure online checkout is not available on this preview site yet. Contact info@vrajnaturals.com for help.</p>
       </div>
       <aside class="order-summary">
         <p class="eyebrow">YOUR SELECTION</p>
         <h2>Order summary</h2>
         <div data-subscription-summary><p class="muted">Select products to see your estimate.</p></div>
-        <div class="summary-line"><span>Flat delivery fee</span><span data-subscription-delivery>₹149</span></div>
+        <div class="summary-line"><span>Delivery fee <small data-subscription-weight></small></span><span data-subscription-delivery>Calculating...</span></div>
         <div class="summary-total"><span>Estimated total per delivery</span><strong data-subscription-total>₹0</strong></div>
         <p class="summary-frequency" data-summary-frequency>Every 2 weeks</p>
-        <p class="summary-note">The ₹149 delivery fee is added to each scheduled delivery. Final availability and subscription terms are confirmed before payment.</p>
+        <p class="summary-note" data-subscription-bulk hidden>For orders above 500 kg, please contact us at <a href="tel:+918860493812">+91 8860493812</a> for a customised quotation.</p>
       </aside>
     </form>
   </section>
