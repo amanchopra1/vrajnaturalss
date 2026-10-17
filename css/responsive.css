@@ -1,10 +1,10 @@
-/* VRAJ NATURALS — responsive rules */
+/* VRAJ NATURALS - responsive rules */
 @media (max-width: 1050px) {
   .header-inner { width: calc(100% - 48px); gap: 18px; }
   .primary-nav { gap: 18px; }
   .header-shop-link { display: none; }
   .hero-copy { padding-left: 40px; }
-  .hero-art, .hero-art-inner { min-height: 480px; }
+  .hero-art-inner { min-height: 480px; }
   .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .story-copy { padding: 55px; }
   .subscription-form { gap: 35px; }
@@ -28,7 +28,7 @@
   .hero-copy { padding: 70px 28px 55px; }
   .hero h1 { font-size: clamp(3.6rem, 15vw, 5.2rem); }
   .hero-note { margin-top: 35px; }
-  .hero-art { padding: 0; min-height: 390px; }
+  .hero-art { padding: 0; min-height: 0; }
   .hero-art-inner { min-height: 390px; }
   .sun-disc { width: 150px; }
   .section-heading { display: block; margin-bottom: 30px; }
@@ -50,6 +50,9 @@
   .footer-main { width: calc(100% - 40px); padding: 48px 0 30px; grid-template-columns: 1fr 1fr; gap: 32px 20px; }
   .footer-brand { grid-column: 1 / -1; }
   .footer-bottom { padding: 18px 20px; flex-direction: column; gap: 5px; }
+  .our-story-feature { width: calc(100% - 40px); grid-template-columns: 1fr; gap: 34px; padding-block: 60px 75px; }
+  .our-story-image { aspect-ratio: 4 / 3; }
+  .our-story-copy h1 { font-size: clamp(2.8rem, 12vw, 4.4rem); }
   .page-hero { padding: 75px 22px 55px; }
   .page-hero h1 { font-size: clamp(3.2rem, 14vw, 4.6rem); }
   .shop-toolbar { align-items: flex-start; flex-direction: column; }

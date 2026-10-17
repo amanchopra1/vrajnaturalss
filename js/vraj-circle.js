@@ -1,4 +1,4 @@
-/* The Vraj Circle — optional marketing lead capture. */
+/* The Vraj Circle - optional marketing lead capture. */
 (() => {
   "use strict";
 

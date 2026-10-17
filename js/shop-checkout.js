@@ -16,6 +16,13 @@
   let items = [];
   let productData = [];
   let idempotencyKey = "";
+  let onlineCheckoutReady = false;
+  const deliveryFeeFor = (weight, postalCode, city) => {
+    if (weight > 500) return null;
+    if (String(postalCode || "").trim() === "125050" && /fatehabad/i.test(String(city || "").trim())) return 0;
+    return [[2, 99], [20, 149], [50, 199], [100, 249], [350, 399], [500, 499]].find(([limit]) => weight <= limit)?.[1] ?? 0;
+  };
+  const isFatehabadFreeDelivery = (postalCode, city) => String(postalCode || "").trim() === "125050" && /fatehabad/i.test(String(city || "").trim());
 
   function showStatus(message, error = false, loading = false) {
     status.textContent = message;
@@ -35,19 +42,22 @@
     const summary = form.querySelector("[data-shop-summary]");
     if (!selected.length) {
       summary.innerHTML = '<p class="muted">Your shop selection could not be found. Please return to the shop and choose an item.</p>';
-      form.querySelectorAll("input, button[type=submit]").forEach(control => { control.disabled = true; });
+      button.disabled = !onlineCheckoutReady;
+      showStatus("Choose a product from the shop before continuing to payment.", true);
       return;
     }
     const subtotal = selected.reduce((sum, item) => sum + item.product.regularPricePerKg * item.weightKg * item.packs, 0);
     const weight = selected.reduce((sum, item) => sum + item.weightKg * item.packs, 0);
-    const delivery = weight <= 2 ? 99 : 149;
+    const delivery = deliveryFeeFor(weight, form.elements.postalCode.value, form.elements.city.value);
     summary.innerHTML = selected.map(({ product, weightKg, packs }) => {
       const lineTotal = product.regularPricePerKg * weightKg * packs;
       return `<div class="summary-line"><span>${safe(product.name)} · ${weightKg} kg × ${packs} pack${packs === 1 ? "" : "s"}</span><strong>${money(lineTotal)}</strong></div>`;
     }).join("");
     form.querySelector("[data-shop-total-weight]").textContent = `(${weight} kg total)`;
-    form.querySelector("[data-shop-delivery]").textContent = money(delivery);
-    form.querySelector("[data-shop-total]").textContent = money(subtotal + delivery);
+    form.querySelector("[data-shop-delivery]").textContent = delivery === null ? "Custom quote" : isFatehabadFreeDelivery(form.elements.postalCode.value, form.elements.city.value) ? "Free" : money(delivery);
+    form.querySelector("[data-shop-total]").textContent = delivery === null ? "Custom quote" : money(subtotal + delivery);
+    form.querySelector("[data-shop-bulk-note]").hidden = delivery !== null;
+    button.disabled = !onlineCheckoutReady;
   }
 
   async function loadRazorpayCheckout() {
@@ -83,14 +93,22 @@
     sessionStorage.removeItem("vrajShopCheckoutItems");
     sessionStorage.removeItem("vrajShopOrderRequest");
     sessionStorage.removeItem("vrajShopOrderRequestKey");
+    localStorage.removeItem("vrajNaturalsCartV1");
     form.querySelector(".checkout-details").innerHTML = `<div class="checkout-complete"><p class="eyebrow">ORDER UPDATE</p><h2>${data.status === "captured" ? "Thank you. Your order is confirmed." : "Payment authorised."}</h2><p>${data.status === "captured" ? "Your payment is confirmed and your order has been recorded. A confirmation email will follow." : "Your bank authorised the payment. We’re waiting for final capture confirmation before marking the order paid."}</p><p>Questions? <a href="mailto:info@vrajnaturals.com">info@vrajnaturals.com</a></p><a class="button button-primary" href="/shop.html">Continue shopping</a></div>`;
   }
 
   form.addEventListener("submit", async event => {
     event.preventDefault();
-    if (!form.reportValidity()) return;
     if (!currentItems().length) {
-      showStatus("Your selected product is no longer available. Please return to the shop.", true);
+      showStatus("Choose a product from the shop before continuing to payment.", true);
+      return;
+    }
+    if (currentItems().reduce((sum, item) => sum + item.weightKg * item.packs, 0) > 500) {
+      showStatus("For orders above 500 kg, please contact us at +91 8860493812 for a customised quotation.", true);
+      return;
+    }
+    if (!form.reportValidity()) {
+      showStatus("Complete the required delivery fields and accept the Terms and Privacy Policy before continuing.", true);
       return;
     }
     if (!workerUrl) {
@@ -143,7 +161,7 @@
       showStatus("Razorpay checkout is ready. Complete payment in the secure payment window.");
     } catch (error) {
       const networkError = error instanceof TypeError && /failed to fetch|load failed|networkerror/i.test(error.message || "");
-      showStatus(networkError ? "We couldn't reach the local checkout service. Start the website and Wrangler Worker, then try again." : error.message || "Something went wrong. Please try again.", true);
+      showStatus(networkError ? "We couldn't connect to secure checkout. Check your connection and try again." : error.message || "Something went wrong. Please try again.", true);
     } finally {
       button.disabled = false;
       button.removeAttribute("aria-busy");
@@ -162,26 +180,32 @@
       const query = new URLSearchParams(location.search);
       const fromQuery = query.get("item") ? [{ id: query.get("item"), weightKg: Number(query.get("kg")), packs: Number(query.get("packs")) }] : [];
       try { items = JSON.parse(sessionStorage.getItem("vrajShopCheckoutItems") || "[]"); } catch (_) { items = []; }
+      if (!Array.isArray(items) || !items.length) {
+        try { items = JSON.parse(localStorage.getItem("vrajNaturalsCartV1") || "[]").map(item => ({ id: item.id, weightKg: Number(item.weightKg), packs: Number(item.quantity) })); } catch (_) { items = []; }
+      }
       if (!Array.isArray(items) || !items.length) items = fromQuery;
       items = items.filter(item => productData.some(product => product.id === item.id) && [1, 2, 5, 10].includes(Number(item.weightKg)) && Number.isInteger(Number(item.packs)) && Number(item.packs) >= 1 && Number(item.packs) <= 50);
       drawSummary();
-      if (!workerUrl && items.length) {
+      if (!workerUrl) {
         button.disabled = true;
         label.textContent = "Online checkout unavailable";
-        form.querySelector("[data-shop-checkout-note]").textContent = "Secure online checkout is not active on this site yet. For help, email info@vrajnaturals.com.";
         showStatus("Secure one-time checkout is not available on this preview site yet. Please contact info@vrajnaturals.com.");
-      } else if (items.length) {
+      } else {
         const healthResponse = await fetch(`${workerUrl}/api/health`, { cache: "no-store" });
         const health = await healthResponse.json().catch(() => ({}));
-        if (!healthResponse.ok || !health.credentialsConfigured || !health.paymentsEnabled) {
+        if (!healthResponse.ok || !health.credentialsConfigured || !health.shopPaymentsEnabled) {
           button.disabled = true;
           label.textContent = "Online checkout unavailable";
-          form.querySelector("[data-shop-checkout-note]").textContent = "Secure online checkout is being prepared. Please contact info@vrajnaturals.com for help.";
-          showStatus("Online one-time checkout is not available yet. Please contact info@vrajnaturals.com.");
+          showStatus("One-time shop payments are not enabled in this environment yet. Please contact info@vrajnaturals.com.");
         } else {
-          button.disabled = false;
+          onlineCheckoutReady = true;
+          drawSummary();
         }
       }
+      [form.elements.city, form.elements.postalCode].forEach(field => {
+        field.addEventListener("input", drawSummary);
+        field.addEventListener("change", drawSummary);
+      });
     } catch (_) {
       showStatus("We couldn't load the product selection. Please go back to the shop and choose a product.", true);
     }

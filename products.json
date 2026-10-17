@@ -1,15 +1,285 @@
 {
   "currency": "INR",
   "pricesArePlaceholders": false,
-  "packOptionsKg": [1, 2, 5, 10],
+  "packOptionsKg": [
+    1,
+    2,
+    5,
+    10
+  ],
   "products": [
-    {"id":"sharbati-atta","name":"Sharbati Atta","category":"food","regularPricePerKg":70,"subscriptionPricePerKg":50,"label":"Everyday staple","description":"Sharbati whole wheat atta for soft, flavourful rotis.","image":"products/sharbati-front-5-10kg.webp","gallery":["products/sharbati-front-1-2kg.webp","products/sharbati-front-5-10kg.webp","products/sharbati-back.webp"],"featured":true,"available":true},
-    {"id":"sona-moti-atta","name":"Sona Moti Atta","category":"food","regularPricePerKg":160,"subscriptionPricePerKg":120,"label":"Traditional grain","description":"Whole wheat atta made from the Sona Moti variety.","image":"products/sona-moti-front-5-10kg.webp","gallery":["products/sona-moti-front-1-2kg.webp","products/sona-moti-front-5-10kg.webp","products/sona-moti-back.webp"],"featured":true,"available":true},
-    {"id":"bajra","name":"Bajra","category":"food","regularPricePerKg":70,"subscriptionPricePerKg":50,"label":"Traditional grain","description":"Bajra for wholesome everyday meals.","image":"products/bajra-front.webp","gallery":["products/bajra-front.webp","products/bajra-back.webp"],"featured":true,"available":true},
-    {"id":"jau","name":"Jau","category":"food","regularPricePerKg":80,"subscriptionPricePerKg":50,"label":"Barley grain","description":"Jau for traditional meals and everyday cooking.","image":"products/jau-front.webp","gallery":["products/jau-front.webp","products/jau-back.webp"],"featured":false,"available":true},
-    {"id":"daliya","name":"Daliya","category":"food","regularPricePerKg":75,"subscriptionPricePerKg":55,"label":"Broken wheat","description":"Broken wheat for wholesome everyday cooking.","image":"products/daliya-front.webp","gallery":["products/daliya-front.webp","products/daliya-back.webp"],"featured":true,"available":true},
-    {"id":"everyday-rice","name":"Everyday Rice","category":"food","regularPricePerKg":60,"subscriptionPricePerKg":50,"label":"Everyday staple","description":"Everyday rice for daily home cooking.","image":"products/everyday-rice-still-life.webp","imageAlt":"Illustrative bowl of uncooked Everyday Rice; product packaging is not shown.","gallery":["products/everyday-rice-still-life.webp"],"featured":false,"available":true},
-    {"id":"basmati-rice","name":"Basmati Rice","category":"food","regularPricePerKg":150,"subscriptionPricePerKg":125,"label":"Long-grain rice","description":"Basmati rice with natural aroma and a fluffy texture.","image":"products/basmati-rice-front-5kg.webp","gallery":["products/basmati-rice-front-5kg.webp","products/basmati-rice-front-10kg.webp","products/basmati-rice-back.webp"],"featured":true,"available":true},
-    {"id":"moong-dal","name":"Moong Dal (Sabut Moong)","category":"food","regularPricePerKg":160,"subscriptionPricePerKg":145,"label":"Pantry essential","description":"Whole green moong for a versatile everyday pantry.","image":"products/moong-front.webp","gallery":["products/moong-front.webp","products/moong-back.webp"],"featured":false,"available":true}
+    {
+      "id": "sharbati-atta",
+      "name": "Sharbati Atta",
+      "category": "food",
+      "regularPricePerKg": 70,
+      "subscriptionPricePerKg": 50,
+      "label": "Everyday staple",
+      "description": "Sharbati whole wheat atta for soft, flavourful rotis.",
+      "image": "products/sharbati-front-5-10kg.webp",
+      "gallery": [
+        "products/sharbati-front-1-2kg.webp",
+        "products/sharbati-front-5-10kg.webp",
+        "products/sharbati-back.webp"
+      ],
+      "packImagesKg": {
+        "1": "products/sharbati-front-1-2kg.webp",
+        "2": "products/sharbati-front-1-2kg.webp",
+        "5": "products/sharbati-front-5-10kg.webp",
+        "10": "products/sharbati-front-5-10kg.webp"
+      },
+      "featured": true,
+      "available": true
+    },
+    {
+      "id": "sona-moti-atta",
+      "name": "Sona Moti Atta",
+      "category": "food",
+      "regularPricePerKg": 160,
+      "subscriptionPricePerKg": 120,
+      "label": "Traditional grain",
+      "description": "Whole wheat atta made from the Sona Moti variety.",
+      "image": "products/sona-moti-front-5-10kg.webp",
+      "gallery": [
+        "products/sona-moti-front-1-2kg.webp",
+        "products/sona-moti-front-5-10kg.webp",
+        "products/sona-moti-back.webp"
+      ],
+      "packImagesKg": {
+        "1": "products/sona-moti-front-1-2kg.webp",
+        "2": "products/sona-moti-front-1-2kg.webp",
+        "5": "products/sona-moti-front-5-10kg.webp",
+        "10": "products/sona-moti-front-5-10kg.webp"
+      },
+      "featured": true,
+      "available": true
+    },
+    {
+      "id": "bajra",
+      "name": "Bajra",
+      "category": "food",
+      "regularPricePerKg": 70,
+      "subscriptionPricePerKg": 50,
+      "label": "Traditional grain",
+      "description": "Bajra for wholesome everyday meals.",
+      "image": "products/bajra-front-5-10kg.png",
+      "gallery": [
+        "products/bajra-front-5-10kg.png",
+        "products/bajra-back-5-10kg.png"
+      ],
+      "packImagesKg": {
+        "1": "products/bajra-front.webp",
+        "2": "products/bajra-front.webp",
+        "5": "products/bajra-front-5-10kg.png",
+        "10": "products/bajra-front-5-10kg.png"
+      },
+      "packGalleriesKg": {
+        "1": [
+          "products/bajra-front.webp",
+          "products/bajra-back.webp"
+        ],
+        "2": [
+          "products/bajra-front.webp",
+          "products/bajra-back.webp"
+        ],
+        "5": [
+          "products/bajra-front-5-10kg.png",
+          "products/bajra-back-5-10kg.png"
+        ],
+        "10": [
+          "products/bajra-front-5-10kg.png",
+          "products/bajra-back-5-10kg.png"
+        ]
+      },
+      "featured": true,
+      "available": true
+    },
+    {
+      "id": "jau",
+      "name": "Jau",
+      "category": "food",
+      "regularPricePerKg": 80,
+      "subscriptionPricePerKg": 50,
+      "label": "Barley grain",
+      "description": "Jau for traditional meals and everyday cooking.",
+      "image": "products/jau-front-5-10kg.png",
+      "gallery": [
+        "products/jau-front.webp",
+        "products/jau-back.webp",
+        "products/jau-front-5-10kg.png",
+        "products/jau-back-5-10kg.png"
+      ],
+      "featured": true,
+      "available": true,
+      "packImagesKg": {
+        "1": "products/jau-front.webp",
+        "2": "products/jau-front.webp",
+        "5": "products/jau-front-5-10kg.png",
+        "10": "products/jau-front-5-10kg.png"
+      },
+      "packGalleriesKg": {
+        "1": [
+          "products/jau-front.webp",
+          "products/jau-back.webp"
+        ],
+        "2": [
+          "products/jau-front.webp",
+          "products/jau-back.webp"
+        ],
+        "5": [
+          "products/jau-front-5-10kg.png",
+          "products/jau-back-5-10kg.png"
+        ],
+        "10": [
+          "products/jau-front-5-10kg.png",
+          "products/jau-back-5-10kg.png"
+        ]
+      }
+    },
+    {
+      "id": "daliya",
+      "name": "Daliya",
+      "category": "food",
+      "regularPricePerKg": 75,
+      "subscriptionPricePerKg": 55,
+      "label": "Broken wheat",
+      "description": "Broken wheat for wholesome everyday cooking.",
+      "image": "products/daliya-front-5-10kg.png",
+      "gallery": [
+        "products/daliya-front.webp",
+        "products/daliya-back.webp",
+        "products/daliya-front-5-10kg.png",
+        "products/daliya-back-5-10kg.png"
+      ],
+      "featured": true,
+      "available": true,
+      "packImagesKg": {
+        "1": "products/daliya-front.webp",
+        "2": "products/daliya-front.webp",
+        "5": "products/daliya-front-5-10kg.png",
+        "10": "products/daliya-front-5-10kg.png"
+      },
+      "packGalleriesKg": {
+        "1": [
+          "products/daliya-front.webp",
+          "products/daliya-back.webp"
+        ],
+        "2": [
+          "products/daliya-front.webp",
+          "products/daliya-back.webp"
+        ],
+        "5": [
+          "products/daliya-front-5-10kg.png",
+          "products/daliya-back-5-10kg.png"
+        ],
+        "10": [
+          "products/daliya-front-5-10kg.png",
+          "products/daliya-back-5-10kg.png"
+        ]
+      }
+    },
+    {
+      "id": "everyday-rice",
+      "name": "Everyday Rice",
+      "category": "food",
+      "regularPricePerKg": 60,
+      "subscriptionPricePerKg": 50,
+      "label": "Everyday staple",
+      "description": "Everyday rice for daily home cooking.",
+      "image": "products/everyday-rice-still-life.webp",
+      "imageAlt": "Everyday Rice product image",
+      "gallery": [
+        "products/everyday-rice-still-life.webp",
+        "products/everyday-rice-front-5-10kg.png",
+        "products/everyday-rice-back.png"
+      ],
+      "packImagesKg": {
+        "1": "products/everyday-rice-still-life.webp",
+        "2": "products/everyday-rice-still-life.webp",
+        "5": "products/everyday-rice-front-5-10kg.png",
+        "10": "products/everyday-rice-front-5-10kg.png"
+      },
+      "packGalleriesKg": {
+        "1": [
+          "products/everyday-rice-still-life.webp"
+        ],
+        "2": [
+          "products/everyday-rice-still-life.webp"
+        ],
+        "5": [
+          "products/everyday-rice-front-5-10kg.png",
+          "products/everyday-rice-back.png"
+        ],
+        "10": [
+          "products/everyday-rice-front-5-10kg.png",
+          "products/everyday-rice-back.png"
+        ]
+      },
+      "featured": false,
+      "available": true
+    },
+    {
+      "id": "basmati-rice",
+      "name": "Basmati Rice",
+      "category": "food",
+      "regularPricePerKg": 150,
+      "subscriptionPricePerKg": 125,
+      "label": "Long-grain rice",
+      "description": "Basmati rice with natural aroma and a fluffy texture.",
+      "image": "products/basmati-rice-front-5kg.webp",
+      "gallery": [
+        "products/basmati-rice-front-5kg.webp",
+        "products/basmati-rice-front-10kg.webp",
+        "products/basmati-rice-back.webp"
+      ],
+      "packImagesKg": {
+        "5": "products/basmati-rice-front-5kg.webp",
+        "10": "products/basmati-rice-front-10kg.webp"
+      },
+      "featured": true,
+      "available": true
+    },
+    {
+      "id": "moong-dal",
+      "name": "Moong Dal (Sabut Moong)",
+      "category": "food",
+      "regularPricePerKg": 160,
+      "subscriptionPricePerKg": 145,
+      "label": "Pantry essential",
+      "description": "Whole green moong for a versatile everyday pantry.",
+      "image": "products/moong-front.webp",
+      "gallery": [
+        "products/moong-front.webp",
+        "products/moong-back.webp",
+        "products/moong-front-5-10kg.png",
+        "products/moong-back-5-10kg.png"
+      ],
+      "packImagesKg": {
+        "1": "products/moong-front.webp",
+        "2": "products/moong-front.webp",
+        "5": "products/moong-front-5-10kg.png",
+        "10": "products/moong-front-5-10kg.png"
+      },
+      "packGalleriesKg": {
+        "1": [
+          "products/moong-front.webp",
+          "products/moong-back.webp"
+        ],
+        "2": [
+          "products/moong-front.webp",
+          "products/moong-back.webp"
+        ],
+        "5": [
+          "products/moong-front-5-10kg.png",
+          "products/moong-back-5-10kg.png"
+        ],
+        "10": [
+          "products/moong-front-5-10kg.png",
+          "products/moong-back-5-10kg.png"
+        ]
+      },
+      "featured": false,
+      "available": true
+    }
   ]
 }

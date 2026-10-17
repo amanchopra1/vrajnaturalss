@@ -1,4 +1,4 @@
-/* VRAJ NATURALS — shared frontend interactions */
+/* VRAJ NATURALS - shared frontend interactions */
 (() => {
   "use strict";
 
@@ -14,7 +14,9 @@
     packOptionsKg: [1, 2, 5, 10],
     products: []
   };
-  const SUBSCRIPTION_DELIVERY_FEE = 149;
+  const FATEHABAD_FREE_PIN = "125050";
+  const SUBSCRIPTION_DELIVERY_TIERS = [[2, 99], [20, 149], [50, 199], [100, 249], [350, 399], [500, 499]];
+  let subscriptionCheckoutReady = false;
   let subscriptionRequestFingerprint = "";
   let subscriptionIdempotencyKey = "";
 
@@ -23,6 +25,12 @@
   const productById = id => CONFIG.products.find(product => product.id === id);
   const packOptions = () => CONFIG.packOptionsKg.map(kg => `<option value="${kg}">${kg} kg</option>`).join("");
   const productPrice = (product, kg, packs, subscription = false) => (subscription ? product.subscriptionPricePerKg : product.regularPricePerKg) * kg * packs;
+  const deliveryFeeFor = (weightKg, postalCode, city) => {
+    if (weightKg > 500) return null;
+    if (String(postalCode || "").trim() === FATEHABAD_FREE_PIN && /fatehabad/i.test(String(city || "").trim())) return 0;
+    return SUBSCRIPTION_DELIVERY_TIERS.find(([limit]) => weightKg <= limit)?.[1] ?? 0;
+  };
+  const isFatehabadFreeDelivery = (postalCode, city) => String(postalCode || "").trim() === FATEHABAD_FREE_PIN && /fatehabad/i.test(String(city || "").trim());
   const whatsappUrl = message => `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
   const whatsappIcon = '<svg class="whatsapp-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M16 3.25A12.25 12.25 0 0 0 5.4 21.65L4 28l6.5-1.35A12.25 12.25 0 1 0 16 3.25Z"/><path d="M11.2 9.7c-.35-.78-.73-.8-1.07-.81h-.9c-.31 0-.82.12-1.25.59-.43.47-1.64 1.6-1.64 3.89s1.68 4.51 1.91 4.82c.24.31 3.25 5.21 8.03 7.1 3.97 1.57 4.78 1.26 5.64 1.18.86-.08 2.77-1.13 3.16-2.22.39-1.1.39-2.03.27-2.22-.12-.2-.43-.32-.9-.55-.47-.24-2.77-1.37-3.2-1.53-.43-.16-.74-.24-1.05.24-.31.47-1.21 1.53-1.48 1.84-.27.31-.55.35-1.02.12-.47-.24-1.99-.73-3.79-2.34-1.4-1.25-2.35-2.8-2.62-3.28-.27-.47-.03-.73.2-.96.21-.21.47-.55.7-.82.24-.27.31-.47.47-.78.16-.31.08-.59-.04-.82-.12-.24-1.05-2.58-1.43-3.45Z"/></svg>';
   const orderMessage = (product, kg, packs, subscription = false) => {
@@ -58,7 +66,7 @@
         <nav class="primary-nav" id="primary-navigation" aria-label="Main navigation">
           ${links.map(([label, href, pages]) => `<a href="${href}" ${label === "The Vraj Circle" ? 'data-open-vraj-circle' : ""} ${pages.includes(active) ? 'aria-current="page"' : ""}>${label}</a>`).join("")}
         </nav>
-        <div class="header-actions"><a class="header-shop-link" href="/shop.html">Explore collection ↗</a><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation"><span aria-hidden="true">☰</span> Menu</button></div>
+        <div class="header-actions"><a class="header-shop-link" href="/shop.html">Explore collection </a><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation"><span class="menu-mark" aria-hidden="true"></span> Menu</button></div>
       </div>`;
     const toggle = target.querySelector(".menu-toggle");
     const nav = target.querySelector(".primary-nav");
@@ -78,7 +86,7 @@
         <div class="footer-brand">
           <a class="brand" href="/" aria-label="Vraj Naturals home"><img class="brand-logo" src="/images/vraj-naturals-logo.webp" alt="Vraj Naturals"></a>
           <p>Traditional Indian staples and thoughtfully chosen handicrafts, bringing heritage and everyday living together.</p>
-          <a class="button button-primary footer-circle-join" href="#join-vraj-circle" data-open-vraj-circle>Join The Vraj Circle <span aria-hidden="true">↗</span></a>
+          <a class="button button-primary footer-circle-join" href="#join-vraj-circle" data-open-vraj-circle>Join The Vraj Circle </a>
         </div>
         <div class="footer-column"><h3>Explore</h3><a href="/shop.html">Shop all</a><a href="/shop.html?category=food">Food staples</a><a href="/shop.html?category=handicrafts">Handicrafts</a><a href="/subscriptions.html">Subscriptions</a><a href="/blogs.html">Journal</a></div>
         <div class="footer-column"><h3>About us</h3><a href="/our-story.html">Our story</a><a href="/contact.html">Contact us</a></div>
@@ -106,12 +114,12 @@
   }
 
   function productCard(product) {
-    return `<article class="product-card" data-category="${escapeHtml(product.category)}" data-price="${product.regularPricePerKg}" data-name="${escapeHtml(product.name.toLowerCase())}">
-      <a class="product-card-link" href="/product.html?id=${encodeURIComponent(product.id)}" aria-label="View ${escapeHtml(product.name)}">
-        ${productArtwork(product)}
-        <div class="product-card-info"><h3>${escapeHtml(product.name)}</h3><div class="product-meta"><span>${money(product.regularPricePerKg)} / kg</span><span class="product-price" data-card-total="${product.id}">${money(product.regularPricePerKg)} total</span></div><p class="pack-unit-price" data-card-unit="${product.id}">${money(product.regularPricePerKg)} per 1 kg pack</p></div>
-      </a>
-      <div class="card-pack-controls"><label>Pack size<select data-card-kg="${product.id}" aria-label="${escapeHtml(product.name)} pack size">${packOptions()}</select></label><div class="card-packs"><span>Number of packs</span><div class="qty-stepper"><button type="button" data-card-pack-change="-1" aria-label="Remove one ${escapeHtml(product.name)} pack">−</button><input type="number" min="1" max="50" value="1" data-card-packs="${product.id}" aria-label="Number of ${escapeHtml(product.name)} packs"><button type="button" data-card-pack-change="1" aria-label="Add one ${escapeHtml(product.name)} pack">+</button></div></div><button class="button button-primary product-order-button" data-card-buy="${product.id}" type="button">Order Now <span aria-hidden="true">↗</span></button></div>
+    return `<article class="product-card shop-cart-card" data-category="${escapeHtml(product.category)}" data-price="${product.regularPricePerKg}" data-name="${escapeHtml(product.name.toLowerCase())}">
+      <button class="shop-product-image-button" type="button" data-quickview-open="${escapeHtml(product.id)}" aria-label="View ${escapeHtml(product.name)} details and images">
+        ${productArtwork(product)}<span class="shop-view-hint">Quick view</span>
+      </button>
+      <div class="product-card-info"><h3>${escapeHtml(product.name)}</h3><div class="product-meta"><span>${money(product.regularPricePerKg)} / kg</span></div></div>
+      <button class="button button-primary product-order-button" data-add-product="${escapeHtml(product.id)}" type="button">Add to cart <span aria-hidden="true">+</span></button>
     </article>`;
   }
 
@@ -161,13 +169,15 @@
   function renderFeatured() {
     const target = document.querySelector("[data-featured-products]");
     if (!target) return;
-    target.innerHTML = CONFIG.products.filter(p => p.category === "food" && p.featured !== false && p.available !== false).slice(0, 4).map(productCard).join("");
+    target.innerHTML = CONFIG.products.filter(p => p.category === "food" && p.featured !== false && p.available !== false).slice(0, 6).map(productCard).join("");
   }
 
   let activeFilter = "all";
   function renderShop() {
     const target = document.querySelector("[data-shop-products]");
     if (!target) return;
+    // The shop page opts into its dedicated cart and quick-view renderer.
+    if (document.querySelector("[data-cart-drawer]")) return;
     const urlCategory = new URLSearchParams(location.search).get("category");
     if (urlCategory === "food" || urlCategory === "handicrafts") activeFilter = urlCategory;
     const sortSelect = document.querySelector("#sort-products");
@@ -228,7 +238,7 @@
     if (crumb) crumb.textContent = product.name;
     target.innerHTML = `
       ${productGallery(product)}
-      <div class="product-detail-copy"><p class="eyebrow">${escapeHtml(product.label)}</p><h1>${escapeHtml(product.name)}</h1><div class="detail-price" data-detail-total>${money(product.regularPricePerKg)} per 1 kg pack · ${money(product.regularPricePerKg)} total · ${money(product.regularPricePerKg)} / kg</div><p>${escapeHtml(product.description)}</p><div class="detail-actions detail-pack-actions"><label class="field-label">Pack size<select id="product-pack-size">${packOptions()}</select></label><div class="card-packs"><span>Number of packs</span><div class="qty-stepper"><button type="button" data-qty-minus aria-label="Decrease ${escapeHtml(product.name)} pack count">−</button><input type="number" min="1" max="50" value="1" id="product-quantity" aria-label="Number of ${escapeHtml(product.name)} packs"><button type="button" data-qty-plus aria-label="Increase ${escapeHtml(product.name)} pack count">+</button></div></div><button class="button button-primary" data-buy-product="${escapeHtml(product.id)}" type="button">Order Now <span aria-hidden="true">↗</span></button></div><p class="form-disclaimer">One-time secure checkout. Delivery is ₹99 up to 2 kg total and ₹149 above 2 kg.</p><p><a class="text-link" href="/subscriptions.html">See lower subscription rates ↗</a></p></div>`;
+      <div class="product-detail-copy"><p class="eyebrow">${escapeHtml(product.label)}</p><h1>${escapeHtml(product.name)}</h1><div class="detail-price" data-detail-total>${money(product.regularPricePerKg)} per 1 kg pack · ${money(product.regularPricePerKg)} total · ${money(product.regularPricePerKg)} / kg</div><p>${escapeHtml(product.description)}</p><div class="detail-actions detail-pack-actions"><label class="field-label">Pack size<select id="product-pack-size">${packOptions()}</select></label><div class="card-packs"><span>Number of packs</span><div class="qty-stepper"><button type="button" data-qty-minus aria-label="Decrease ${escapeHtml(product.name)} pack count">−</button><input type="number" min="1" max="50" value="1" id="product-quantity" aria-label="Number of ${escapeHtml(product.name)} packs"><button type="button" data-qty-plus aria-label="Increase ${escapeHtml(product.name)} pack count">+</button></div></div><button class="button button-primary" data-buy-product="${escapeHtml(product.id)}" type="button">Order Now </button></div><p class="form-disclaimer">One-time secure checkout.</p><p><a class="text-link" href="/subscriptions.html">See lower subscription rates </a></p></div>`;
     const qty = target.querySelector("#product-quantity");
     const kgSelect = target.querySelector("#product-pack-size");
     const updateDetailPrice = () => {
@@ -286,6 +296,9 @@
     const total = document.querySelector("[data-subscription-total]");
     const freq = document.querySelector("#frequency");
     const freqText = document.querySelector("[data-summary-frequency]");
+    const delivery = document.querySelector("[data-subscription-delivery]");
+    const deliveryWeight = document.querySelector("[data-subscription-weight]");
+    const bulkNote = document.querySelector("[data-subscription-bulk]");
     if (!summary || !total) return;
     const items = selectedSubscriptionItems();
     document.querySelectorAll("[data-sub-pack-price]").forEach(price => {
@@ -296,7 +309,19 @@
     });
     summary.innerHTML = items.length ? items.map(({product, kg, packs}) => `<div class="summary-line"><span>${escapeHtml(product.name)} · ${kg} kg × ${packs} pack${packs === 1 ? "" : "s"}</span><span>${money(productPrice(product, kg, packs, true))}</span></div>`).join("") : '<p class="muted">Select products to see your estimate.</p>';
     const productsTotal = items.reduce((sum, item) => sum + productPrice(item.product, item.kg, item.packs, true), 0);
-    total.textContent = money(productsTotal + (items.length ? SUBSCRIPTION_DELIVERY_FEE : 0));
+    const totalWeightKg = items.reduce((sum, item) => sum + item.kg * item.packs, 0);
+    const form = document.querySelector("#subscription-form");
+    const fee = deliveryFeeFor(totalWeightKg, form?.elements.postalCode?.value, form?.elements.city?.value);
+    const isBulk = Boolean(items.length && fee === null);
+    if (deliveryWeight) deliveryWeight.textContent = items.length ? `(${totalWeightKg} kg total)` : "";
+    if (delivery) delivery.textContent = isBulk ? "Custom quote" : items.length && isFatehabadFreeDelivery(form?.elements.postalCode?.value, form?.elements.city?.value) ? "Free" : money(items.length ? fee : 0);
+    total.textContent = isBulk ? "Custom quote" : money(productsTotal + (items.length ? fee : 0));
+    if (bulkNote) bulkNote.hidden = !isBulk;
+    const submit = form?.querySelector('button[type="submit"]');
+    // Keep the action usable when the selection itself needs attention. The submit
+    // handler can explain the missing selection or bulk quote instead of leaving
+    // customers with a button that appears unresponsive.
+    if (submit) submit.disabled = !subscriptionCheckoutReady;
     const labels = { weekly: "Every week", fortnightly: "Every 2 weeks", monthly: "Every month", "every-two-months": "Every 2 months", "every-three-months": "Every 3 months" };
     if (freqText) freqText.textContent = labels[freq?.value] || "Recurring schedule";
   }
@@ -308,6 +333,11 @@
     const items = selectedSubscriptionItems();
     if (!items.length) {
       setStatus(status, "Please select at least one product and quantity.", true);
+      return;
+    }
+    const totalWeightKg = items.reduce((sum, item) => sum + item.kg * item.packs, 0);
+    if (totalWeightKg > 500) {
+      setStatus(status, "For orders above 500 kg, please contact us at +91 8860493812 for a customised quotation.", true);
       return;
     }
     if (!form.reportValidity()) return;
@@ -339,7 +369,7 @@
     buttonLabel.textContent = "Connecting securely to Razorpay…";
     buttonArrow.hidden = true;
     buttonSpinner.hidden = false;
-    setStatus(status, "Preparing your secure checkout. This can take a few seconds—please keep this page open.");
+    setStatus(status, "Preparing your secure checkout. This can take a few seconds. Please keep this page open.");
     status?.classList.add("is-loading");
     try {
       if (!CONFIG.workerBaseUrl) {
@@ -436,9 +466,10 @@
       ? "Local checkout uses Razorpay Test Mode. Keep the Wrangler Worker running while testing, and use test customer details only."
       : "Checkout opens securely with Razorpay. The amount and recurring schedule will be shown for your review before authorisation.";
     if (button) {
-      button.disabled = false;
+      subscriptionCheckoutReady = true;
       button.removeAttribute("aria-disabled");
     }
+    updateSubscriptionSummary();
   }
 
   document.addEventListener("DOMContentLoaded", async () => {
@@ -463,6 +494,10 @@
       await configureSubscriptionCheckout();
       subscriptionForm.addEventListener("submit", submitSubscription);
       document.querySelector("#frequency")?.addEventListener("change", updateSubscriptionSummary);
+      [subscriptionForm.elements.city, subscriptionForm.elements.postalCode].forEach(field => {
+        field?.addEventListener("input", updateSubscriptionSummary);
+        field?.addEventListener("change", updateSubscriptionSummary);
+      });
     }
     handleContactForm();
     document.querySelectorAll("[data-contact-email]").forEach(link => {

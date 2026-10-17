@@ -1,4 +1,4 @@
-/* VRAJ NATURALS — shared design system */
+/* VRAJ NATURALS - shared design system */
 :root {
   --green: #173d24;
   --green-dark: #102b1a;
@@ -52,14 +52,14 @@ em { color: var(--green); font-weight: 400; }
 .button-light:hover { background: var(--white); }
 .text-link { display: inline-flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--gold); padding-bottom: 6px; color: var(--green); font-size: 12px; font-weight: 600; }
 .eyebrow { color: var(--gold); font-size: 10px; letter-spacing: .2em; font-weight: 700; text-transform: uppercase; margin-bottom: 18px; }
-.hero { display: grid; grid-template-columns: 1fr 1fr; min-height: 620px; }
+.hero { display: grid; grid-template-columns: 1fr 1fr; align-items: center; }
 .hero-copy { padding: clamp(70px, 9vw, 135px) 7vw clamp(65px, 7vw, 100px) max(40px, calc((100vw - var(--container))/2)); display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
 .hero h1 { color: var(--green); }
 .hero-description { max-width: 410px; color: #626960; font-size: 14px; line-height: 1.9; margin-bottom: 30px; }
 .hero-actions { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
 .hero-note { display: flex; align-items: center; gap: 12px; margin-top: 58px; color: var(--muted); font-size: 10px; letter-spacing: .06em; }
 .note-line { width: 35px; height: 1px; background: var(--gold); }
-.hero-art { min-height: 540px; padding: 24px; background: #e7e5d8; overflow: hidden; }
+.hero-art { min-height: 0; aspect-ratio: 1586 / 992; padding: 0; background: #e7e5d8; overflow: hidden; }
 .hero-art-inner { height: 100%; min-height: 540px; position: relative; overflow: hidden; background: linear-gradient(150deg, #e8e5d6 0%, #d7d7bd 60%, #b5b999 100%); }
 .sun-disc { position: absolute; width: 210px; aspect-ratio: 1; border-radius: 50%; background: #d6b77d; top: 12%; right: 19%; opacity: .9; }
 .field { position: absolute; width: 150%; left: -25%; border-radius: 50% 50% 0 0; transform: rotate(-8deg); }
@@ -120,12 +120,7 @@ em { color: var(--green); font-weight: 400; }
 .card-packs .qty-stepper input { width: 35px; }
 .story-band { display: grid; grid-template-columns: 1fr 1fr; background: var(--green); color: var(--ivory); }
 .story-art { min-height: 500px; background: #d8d8c5; position: relative; overflow: hidden; display: grid; place-items: center; }
-.story-circle { position: absolute; width: 290px; height: 290px; border-radius: 50%; background: #c9ae78; opacity: .9; }
-.story-stem { width: 4px; height: 70%; background: #65734c; position: absolute; transform: rotate(20deg); }
-.story-stem:before, .story-stem:after { content: ""; position: absolute; width: 42px; height: 100px; background: #75855b; border-radius: 100% 0 100% 0; }
-.story-stem:before { top: 18%; left: 2px; transform: rotate(-30deg); }
-.story-stem:after { top: 42%; right: 3px; transform: rotate(130deg); }
-.story-art > span { position: absolute; bottom: 25px; left: 28px; font-size: 8px; line-height: 1.7; letter-spacing: .18em; color: var(--green); }
+.story-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .story-copy { padding: clamp(50px, 8vw, 110px); display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
 .story-copy .eyebrow { color: var(--gold-light); }
 .story-copy h2 { color: var(--ivory); max-width: 480px; }
@@ -144,6 +139,13 @@ em { color: var(--green); font-weight: 400; }
 .footer-column a:hover { color: var(--green); }
 .footer-bottom { border-top: 1px solid var(--line); padding: 18px 40px; display: flex; justify-content: space-between; gap: 20px; color: var(--muted); font-size: 10px; }
 .footer-bottom p { margin: 0; }
+.our-story-feature { width: min(1280px, calc(100% - 80px)); margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); align-items: center; gap: clamp(40px, 7vw, 100px); padding-block: 80px 110px; }
+.our-story-image { min-width: 0; margin: 0; aspect-ratio: 16 / 10; overflow: hidden; background: #eee9dc; }
+.our-story-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.our-story-copy .eyebrow { margin-bottom: 18px; }
+.our-story-copy h1 { margin: 0 0 28px; color: var(--green); font: 500 clamp(2.8rem, 5vw, 5rem)/.98 var(--serif); }
+.our-story-copy p:not(.eyebrow) { color: #626960; font-size: 13px; line-height: 1.9; }
+.our-story-copy p:last-child { margin-bottom: 0; }
 .page-hero { text-align: center; padding: 100px 24px 78px; background: #f2efe5; }
 .page-hero h1 { font-size: clamp(3.5rem, 7vw, 6rem); margin-bottom: 20px; }
 .page-hero > p:last-child { color: var(--muted); max-width: 540px; margin: auto; font-size: 13px; }
@@ -336,8 +338,8 @@ em { color: var(--green); font-weight: 400; }
 }
 
 /* Editorial imagery */
-.hero-art { padding: 0; background: #e7e5d8; }
-.hero-planet { display: block; width: 100%; height: 100%; min-height: inherit; object-fit: cover; }
+.hero-art { min-height: 0; padding: 0; background: #e7e5d8; }
+.hero-planet { display: block; width: 100%; height: 100%; min-height: 0; object-fit: cover; object-position: center; }
 .collection-photo { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
 .whatsapp-icon { display: block; flex: 0 0 24px; width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .whatsapp-icon path + path { fill: currentColor; stroke: none; }
@@ -382,3 +384,8 @@ em { color: var(--green); font-weight: 400; }
   .vraj-circle-form > * { grid-column: 1 / -1; }
   .vraj-circle-heading h2 { font-size: 2.5rem; }
 }
+
+.site-direction-icon { display: inline-block; width: 9px; height: 9px; border-top: 1.5px solid currentColor; border-right: 1.5px solid currentColor; }
+.site-direction-left { transform: rotate(-135deg); }
+.site-direction-right { transform: rotate(45deg); }
+.menu-mark { display: inline-block; width: 14px; height: 12px; background: linear-gradient(to bottom, currentColor 0 1px, transparent 1px 5px, currentColor 5px 6px, transparent 6px 10px, currentColor 10px 11px, transparent 11px); }
