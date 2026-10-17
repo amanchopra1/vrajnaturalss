@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Review your Vraj Naturals shop order, enter delivery details and pay securely with Razorpay.">
+  <meta name="robots" content="noindex,follow">
+  <title>Secure checkout | Vraj Naturals</title>
+  <link rel="icon" type="image/webp" href="/images/vraj-naturals-logo.webp">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css?v=20261017-02"><link rel="stylesheet" href="/css/responsive.css?v=20261017-02">
+  <script src="/js/script.js?v=20261017-02" defer></script><script src="/js/vraj-circle.js?v=20261017-02" defer></script><script src="/js/shop-checkout.js?v=20261017-02" defer></script>
+  <link rel="canonical" href="https://vrajnaturals.com/checkout.html">
+</head>
+<body>
+  <header data-site-header class="site-header"><div class="header-inner fallback-header-inner"><a class="brand" href="/" aria-label="Vraj Naturals home"><img class="brand-logo" src="/images/vraj-naturals-logo.webp" alt="Vraj Naturals"></a><nav class="fallback-nav" aria-label="Main navigation"><a href="https://vrajnaturals.com/">Home</a><a href="/shop.html">Shop</a><a href="/subscriptions.html">Subscriptions</a><a href="/blogs.html">Journal</a><a href="/our-story.html">Our Story</a><a href="/contact.html">Contact</a><a href="#join-vraj-circle" data-open-vraj-circle>The Vraj Circle</a></nav></div></header>
+  <main>
+    <section class="page-hero checkout-hero"><p class="eyebrow">YOUR VRAJ ORDER</p><h1>Secure <em>checkout.</em></h1><p>Review your selection and delivery details. Payment is processed securely by Razorpay.</p></section>
+    <section class="section checkout-section">
+      <form class="checkout-layout" id="shop-checkout-form" novalidate>
+        <div class="checkout-details">
+          <div class="form-step"><span class="step-number">01</span><div><h2>Delivery details</h2><p>Where should we send your order?</p></div></div>
+          <div class="form-fields">
+            <label class="field-label">Full name<input name="name" autocomplete="name" required maxlength="100"></label>
+            <label class="field-label">Email address<input name="email" type="email" autocomplete="email" required maxlength="150"></label>
+            <label class="field-label">Phone number<input name="phone" type="tel" autocomplete="tel" inputmode="tel" required pattern="[0-9+() -]{8,20}" maxlength="20"></label>
+            <label class="field-label full-field">Address line 1<input name="address1" autocomplete="address-line1" required maxlength="200"></label>
+            <label class="field-label full-field">Address line 2 (optional)<input name="address2" autocomplete="address-line2" maxlength="200"></label>
+            <label class="field-label">City<input name="city" autocomplete="address-level2" required maxlength="100"></label>
+            <label class="field-label">State<input name="state" autocomplete="address-level1" required maxlength="100"></label>
+            <label class="field-label">PIN code<input name="postalCode" autocomplete="postal-code" inputmode="numeric" required pattern="[0-9]{6}" maxlength="6"></label>
+            <label class="field-label">Country<input name="country" value="India" autocomplete="country-name" required maxlength="60"></label>
+          </div>
+          <label class="consent-check"><input type="checkbox" name="terms" required><span>I agree to the <a href="/terms.html">Terms</a> and <a href="/privacy-policy.html">Privacy Policy</a>.</span></label>
+          <div class="form-status" data-shop-checkout-status role="status" aria-live="polite"></div>
+          <button class="button button-primary submit-button" type="submit" disabled><span data-shop-submit-label>Continue to secure payment</span><span data-shop-submit-arrow aria-hidden="true">↗</span><span class="submit-spinner" data-shop-submit-spinner aria-hidden="true" hidden></span></button>
+          <p class="form-disclaimer" data-shop-checkout-note>Delivery is ₹99 for orders up to 2 kg and ₹149 for orders above 2 kg. Final amount is confirmed in the secure Razorpay checkout.</p>
+        </div>
+        <aside class="order-summary shop-checkout-summary">
+          <p class="eyebrow">YOUR SELECTION</p><h2>Order summary</h2>
+          <div data-shop-summary><p class="muted">Loading your selection…</p></div>
+          <div class="summary-line"><span>Delivery fee <small data-shop-total-weight></small></span><strong data-shop-delivery>—</strong></div>
+          <div class="summary-total"><span>Total</span><strong data-shop-total>—</strong></div>
+          <p class="summary-note">This is a one-time payment. No subscription will be created.</p>
+          <a class="text-link" href="/shop.html">← Back to shop</a>
+        </aside>
+      </form>
+    </section>
+  </main>
+  <footer data-site-footer></footer>
+  <a class="whatsapp-float" href="https://wa.me/918860493812?text=Hello%20Vraj%20Naturals%2C%20I%20have%20a%20question." target="_blank" rel="noopener noreferrer" aria-label="Chat with Vraj Naturals on WhatsApp"><svg class="whatsapp-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M16 3.25A12.25 12.25 0 0 0 5.4 21.65L4 28l6.5-1.35A12.25 12.25 0 1 0 16 3.25Z"/><path d="M11.2 9.7c-.35-.78-.73-.8-1.07-.81h-.9c-.31 0-.82.12-1.25.59-.43.47-1.64 1.6-1.64 3.89s1.68 4.51 1.91 4.82c.24.31 3.25 5.21 8.03 7.1 3.97 1.57 4.78 1.26 5.64 1.18.86-.08 2.77-1.13 3.16-2.22.39-1.1.39-2.03.27-2.22-.12-.2-.43-.32-.9-.55-.47-.24-2.77-1.37-3.2-1.53-.43-.16-.74-.24-1.05.24-.31.47-1.21 1.53-1.48 1.84-.27.31-.55.35-1.02.12-.47-.24-1.99-.73-3.79-2.34-1.4-1.25-2.35-2.8-2.62-3.28-.27-.47-.03-.73.2-.96.21-.21.47-.55.7-.82.24-.27.31-.55.47-.78.16-.31.08-.59-.04-.82-.12-.24-1.05-2.58-1.43-3.45Z"/></svg><span>Chat on WhatsApp</span></a>
+</body>
+</html>

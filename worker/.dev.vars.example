@@ -1,0 +1,9 @@
+# Copy to .dev.vars in this folder and replace every placeholder locally.
+# Use Razorpay Dashboard > Account & Settings > API Keys > Test Mode.
+ALLOWED_ORIGIN="http://127.0.0.1:8000"
+RAZORPAY_MODE="test"
+RAZORPAY_KEY_ID="rzp_test_REPLACE_WITH_TEST_KEY_ID"
+RAZORPAY_KEY_SECRET="REPLACE_WITH_TEST_KEY_SECRET"
+RAZORPAY_WEBHOOK_SECRET="REPLACE_WITH_TEST_WEBHOOK_SECRET"
+ORDERS_WEB_APP_URL="https://script.google.com/macros/s/DEPLOYMENT_ID/exec"
+ORDERS_API_TOKEN="REPLACE_WITH_A_RANDOM_64_CHARACTER_TOKEN"

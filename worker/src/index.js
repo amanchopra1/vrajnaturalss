@@ -2,48 +2,79 @@
  * VRAJ NATURALS — Cloudflare Worker / Razorpay integration starter
  *
  * IMPORTANT:
- * - This worker is intentionally fail-closed for subscriptions.
+ * - Payment mode must be set explicitly for each environment.
  * - Razorpay subscriptions require a valid Plan ID and compatible billing
  *   configuration. A unique product mix may need a plan created/approved first.
- * - Do not deploy a live payment flow until the Razorpay account, subscription
- *   product, billing interval, checkout, webhook and cancellation flow are tested.
+ * - Production payments remain disabled until PAYMENTS_ENABLED is changed to true.
  * - No separate database is used by this starter.
  *
  * Required Worker secrets:
  *   RAZORPAY_KEY_ID
  *   RAZORPAY_KEY_SECRET
+ *   RAZORPAY_WEBHOOK_SECRET
+ *   ORDERS_API_TOKEN
+ *   ORDERS_WEB_APP_URL
  *
- * Worker variables:
- *   ALLOWED_ORIGIN = https://your-production-domain.example
- *   RAZORPAY_PLAN_WEEKLY = plan_...
- *   RAZORPAY_PLAN_FORTNIGHTLY = plan_...
- *   RAZORPAY_PLAN_MONTHLY = plan_...
+ * Local development variables in worker/.dev.vars:
+ *   ALLOWED_ORIGIN = http://127.0.0.1:8000
+ *   RAZORPAY_MODE = test (set live only in the production Worker environment)
  *
- * Plan amount must match the exact selected products/quantities. A single static
- * plan cannot safely represent arbitrary customer-selected mixes. For production,
- * implement a tested plan strategy that creates/reuses plans via Razorpay API or
- * offers fixed curated subscription bundles. This starter returns a clear error
- * rather than charging an incorrect amount.
+ * Plans are reused within the selected Razorpay mode when amount, currency,
+ * period, and interval match. If none matches, the Worker creates a plan. No plan
+ * identifier, price, or total supplied by the browser is trusted.
  */
 
 const PRODUCTS = {
-  "sharbati-atta": { name: "Sharbati Atta", subscriptionPaisePerKg: 5000 },
-  "sona-moti-atta": { name: "Sona Moti Atta", subscriptionPaisePerKg: 12000 },
-  "bajra": { name: "Bajra", subscriptionPaisePerKg: 5000 },
-  "jau": { name: "Jau", subscriptionPaisePerKg: 5000 },
-  "daliya": { name: "Daliya", subscriptionPaisePerKg: 5500 },
-  "everyday-rice": { name: "Everyday Rice", subscriptionPaisePerKg: 5000 },
-  "basmati-rice": { name: "Basmati Rice", subscriptionPaisePerKg: 12500 },
-  "moong-dal": { name: "Moong Dal (Sabut Moong)", subscriptionPaisePerKg: 14500 }
+  "sharbati-atta": { name: "Sharbati Atta", regularPaisePerKg: 7000, subscriptionPaisePerKg: 5000 },
+  "sona-moti-atta": { name: "Sona Moti Atta", regularPaisePerKg: 16000, subscriptionPaisePerKg: 12000 },
+  "bajra": { name: "Bajra", regularPaisePerKg: 7000, subscriptionPaisePerKg: 5000 },
+  "jau": { name: "Jau", regularPaisePerKg: 8000, subscriptionPaisePerKg: 5000 },
+  "daliya": { name: "Daliya", regularPaisePerKg: 7500, subscriptionPaisePerKg: 5500 },
+  "everyday-rice": { name: "Everyday Rice", regularPaisePerKg: 6000, subscriptionPaisePerKg: 5000 },
+  "basmati-rice": { name: "Basmati Rice", regularPaisePerKg: 15000, subscriptionPaisePerKg: 12500 },
+  "moong-dal": { name: "Moong Dal (Sabut Moong)", regularPaisePerKg: 16000, subscriptionPaisePerKg: 14500 }
 };
 
 const ALLOWED_WEIGHTS_KG = new Set([1, 2, 5, 10]);
+const SUBSCRIPTION_DELIVERY_FEE_PAISE = 14900;
+const SHOP_DELIVERY_FEE_UP_TO_2KG_PAISE = 9900;
+const SHOP_DELIVERY_FEE_OVER_2KG_PAISE = 14900;
+const IDEMPOTENCY_TTL_MS = 10 * 60 * 1000;
+const idempotentRequests = new Map();
+const matchingPlanCache = new Map();
+
+function paymentMode(env) {
+  return env.RAZORPAY_MODE === "live" ? "live" : "test";
+}
+
+function credentialsMatchMode(env) {
+  const keyId = env.RAZORPAY_KEY_ID || "";
+  return paymentMode(env) === "live" ? keyId.startsWith("rzp_live_") : keyId.startsWith("rzp_test_");
+}
+
+function paymentsUnavailable(env) {
+  if (env.PAYMENTS_ENABLED === "false") return "Online payments are not enabled yet. Please contact info@vrajnaturals.com.";
+  if (!credentialsMatchMode(env) || !env.RAZORPAY_KEY_SECRET || !env.RAZORPAY_WEBHOOK_SECRET || !env.ORDERS_WEB_APP_URL || !env.ORDERS_API_TOKEN) {
+    return "Secure checkout is still being configured. Please contact info@vrajnaturals.com.";
+  }
+  return "";
+}
 
 const FREQUENCIES = {
-  weekly: { env: "RAZORPAY_PLAN_WEEKLY", label: "weekly" },
-  fortnightly: { env: "RAZORPAY_PLAN_FORTNIGHTLY", label: "fortnightly" },
-  monthly: { env: "RAZORPAY_PLAN_MONTHLY", label: "monthly" }
+  weekly: { period: "weekly", interval: 1, label: "weekly" },
+  fortnightly: { period: "weekly", interval: 2, label: "every 2 weeks" },
+  monthly: { period: "monthly", interval: 1, label: "monthly" },
+  "every-two-months": { period: "monthly", interval: 2, label: "every 2 months" },
+  "every-three-months": { period: "monthly", interval: 3, label: "every 3 months" }
 };
+
+function subscriptionCycleLimit(frequency) {
+  // Razorpay subscriptions have a 10-year maximum duration. Keep every
+  // interval within that duration (e.g. 40 quarterly cycles rather than 120).
+  return frequency.period === "weekly"
+    ? Math.floor(52 * 10 / frequency.interval)
+    : Math.floor(12 * 10 / frequency.interval);
+}
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {
   status,
@@ -56,7 +87,7 @@ function corsHeaders(origin, env) {
   return {
     "Access-Control-Allow-Origin": permitted,
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Idempotency-Key",
     "Vary": "Origin"
   };
 }
@@ -66,15 +97,16 @@ function validatePayload(payload) {
   if (!payload.consent) return "Please confirm the recurring payment terms.";
   const customer = payload.customer || {};
   const shipping = payload.shipping || {};
-  if (!customer.name || customer.name.length > 100) return "Enter a valid name.";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email || "") || customer.email.length > 150) return "Enter a valid email address.";
+  if (typeof customer.name !== "string" || !customer.name.trim() || customer.name.length > 100) return "Enter a valid name.";
+  if (typeof customer.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email) || customer.email.length > 150) return "Enter a valid email address.";
   if (!/^[0-9+() -]{8,20}$/.test(customer.phone || "")) return "Enter a valid phone number.";
-  if (!shipping.address1 || shipping.address1.length > 200) return "Enter a valid delivery address.";
-  if (!shipping.city || shipping.city.length > 100 || !shipping.state || shipping.state.length > 100) return "Enter a valid city and state.";
+  if (typeof shipping.address1 !== "string" || !shipping.address1.trim() || shipping.address1.length > 200) return "Enter a valid delivery address.";
+  if (typeof shipping.city !== "string" || !shipping.city.trim() || shipping.city.length > 100 || typeof shipping.state !== "string" || !shipping.state.trim() || shipping.state.length > 100) return "Enter a valid city and state.";
   if (!/^[0-9]{6}$/.test(shipping.postalCode || "")) return "Enter a valid six-digit PIN code.";
-  if (!shipping.country || shipping.country.length > 60) return "Enter a valid country.";
+  if (typeof shipping.country !== "string" || !shipping.country.trim() || shipping.country.length > 60) return "Enter a valid country.";
   if (!Array.isArray(payload.items) || payload.items.length < 1 || payload.items.length > 8) return "Select one or more valid products.";
   if (!FREQUENCIES[payload.frequency]) return "Select a supported billing frequency.";
+  if (payload.emailReminderConsent !== undefined && typeof payload.emailReminderConsent !== "boolean") return "Invalid email reminder preference.";
   const seen = new Set();
   for (const item of payload.items) {
     if (!item || !PRODUCTS[item.id] || !ALLOWED_WEIGHTS_KG.has(item.weightKg) || !Number.isInteger(item.packs) || item.packs < 1 || item.packs > 50 || seen.has(item.id)) {
@@ -89,6 +121,7 @@ async function razorpayRequest(path, env, body) {
   const keyId = env.RAZORPAY_KEY_ID;
   const keySecret = env.RAZORPAY_KEY_SECRET;
   if (!keyId || !keySecret) throw new Error("Razorpay credentials are not configured.");
+  if (!credentialsMatchMode(env)) throw new Error(`Razorpay ${paymentMode(env) === "live" ? "Live" : "Test"} Mode credentials are required for this environment.`);
   const auth = btoa(`${keyId}:${keySecret}`);
   const response = await fetch(`https://api.razorpay.com/v1${path}`, {
     method: body ? "POST" : "GET",
@@ -107,34 +140,74 @@ async function razorpayRequest(path, env, body) {
   return data;
 }
 
-async function createSubscription(request, env) {
-  let payload;
-  try { payload = await request.json(); } catch { return json({ error: "Invalid JSON request." }, 400); }
-  const validationError = validatePayload(payload);
-  if (validationError) return json({ error: validationError }, 400);
+async function ordersApi(env, action, fields) {
+  if (!env.ORDERS_WEB_APP_URL || !env.ORDERS_API_TOKEN) throw new Error("The private Google Orders Sheet is not configured yet.");
+  let response;
+  try {
+    response = await fetch(env.ORDERS_WEB_APP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "vraj-order-api", action, token: env.ORDERS_API_TOKEN, ...fields })
+    });
+  } catch (_) {
+    throw new Error("The private Google Orders Sheet could not be reached.");
+  }
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.ok) throw new Error(data.error || "The private Google Orders Sheet rejected the request.");
+  return data;
+}
 
-  const frequency = FREQUENCIES[payload.frequency];
-  const planId = env[frequency.env];
-  if (!planId) {
-    return json({
-      error: "Subscriptions are not live yet. The matching Razorpay plan has not been configured. Please contact Vraj Naturals."
-    }, 503);
+async function findMatchingPlan(env, amountPaise, frequency) {
+  const cacheKey = `${amountPaise}:${frequency.period}:${frequency.interval}`;
+  if (matchingPlanCache.has(cacheKey)) return matchingPlanCache.get(cacheKey);
+
+  const plans = [];
+  for (let skip = 0; skip < 1000; skip += 100) {
+    const collection = await razorpayRequest(`/plans?count=100&skip=${skip}`, env);
+    const page = Array.isArray(collection.items) ? collection.items : [];
+    plans.push(...page);
+    if (page.length < 100) break;
+  }
+  const plan = plans.find(candidate => candidate && candidate.id &&
+    candidate.item?.active !== false &&
+    Number(candidate.item?.amount) === amountPaise &&
+    candidate.item?.currency === "INR" &&
+    candidate.period === frequency.period &&
+    Number(candidate.interval) === frequency.interval);
+  if (plan) {
+    matchingPlanCache.set(cacheKey, plan);
+    return plan;
   }
 
+  const created = await razorpayRequest("/plans", env, {
+    period: frequency.period,
+    interval: frequency.interval,
+    item: {
+      name: `Vraj Naturals subscription · ₹${amountPaise / 100} per delivery`,
+      amount: amountPaise,
+      currency: "INR",
+      description: `Vraj Naturals subscription, ${frequency.label}; includes ₹149 delivery per scheduled delivery.`
+    },
+    notes: { created_by: `Vraj Naturals ${paymentMode(env) === "live" ? "Live" : "Test"} Mode integration` }
+  });
+  if (!created?.id || Number(created.item?.amount) !== amountPaise || created.period !== frequency.period || Number(created.interval) !== frequency.interval) {
+    throw new Error("Razorpay did not return a plan matching the requested amount and frequency.");
+  }
+  matchingPlanCache.set(cacheKey, created);
+  return created;
+}
+
+async function createSubscription(payload, env, idempotencyKey) {
+  const unavailable = paymentsUnavailable(env);
+  if (unavailable) return { status: 503, body: { error: unavailable } };
   // Never trust client-calculated prices. Compute the expected recurring total here.
-  const amountPaise = payload.items.reduce((sum, item) => sum + PRODUCTS[item.id].subscriptionPaisePerKg * item.weightKg * item.packs, 0);
-  if (!Number.isSafeInteger(amountPaise) || amountPaise <= 0) return json({ error: "Unable to calculate order total." }, 400);
+  const productsAmountPaise = payload.items.reduce((sum, item) => sum + PRODUCTS[item.id].subscriptionPaisePerKg * item.weightKg * item.packs, 0);
+  const amountPaise = productsAmountPaise + SUBSCRIPTION_DELIVERY_FEE_PAISE;
+  if (!Number.isSafeInteger(amountPaise) || amountPaise <= 0) return { status: 400, body: { error: "Unable to calculate order total." } };
 
-  // A Razorpay plan has its own fixed amount/period. Refuse mismatches instead of
-  // creating a subscription whose amount differs from the selected products.
   let plan;
-  try { plan = await razorpayRequest(`/plans/${encodeURIComponent(planId)}`, env); }
-  catch { return json({ error: "The configured subscription plan could not be verified. Please contact us." }, 503); }
-  if (Number(plan.item?.amount) !== amountPaise) {
-    return json({
-      error: "This exact product combination is not configured for recurring billing yet. Please contact us to arrange your subscription."
-    }, 422);
-  }
+  try { plan = await findMatchingPlan(env, amountPaise, FREQUENCIES[payload.frequency]); }
+  catch (error) { return { status: 503, body: { error: error.message } }; }
 
   const itemsText = payload.items.map(item => `${PRODUCTS[item.id].name} ${item.weightKg}kg x${item.packs}`).join("; ");
   const notes = {
@@ -147,31 +220,266 @@ async function createSubscription(request, env) {
     postal_code: payload.shipping.postalCode.slice(0, 255),
     country: payload.shipping.country.slice(0, 255),
     product_summary: itemsText.slice(0, 255),
-    frequency: payload.frequency
+    frequency: FREQUENCIES[payload.frequency].label,
+    delivery_fee_paise: String(SUBSCRIPTION_DELIVERY_FEE_PAISE),
+    products_amount_paise: String(productsAmountPaise),
+    local_request_id: idempotencyKey
   };
 
+  let createdOrderId = "";
   try {
+    const order = await ordersApi(env, "create-order", { order: {
+      localRequestId: idempotencyKey,
+      customerName: payload.customer.name,
+      email: payload.customer.email,
+      phone: payload.customer.phone,
+      address1: payload.shipping.address1,
+      address2: payload.shipping.address2 || "",
+      city: payload.shipping.city,
+      state: payload.shipping.state,
+      postalCode: payload.shipping.postalCode,
+      country: payload.shipping.country,
+      items: payload.items.map(item => ({
+        id: item.id, name: PRODUCTS[item.id].name, weightKg: item.weightKg, packs: item.packs,
+        unitPricePerKg: PRODUCTS[item.id].subscriptionPaisePerKg / 100,
+        lineTotal: PRODUCTS[item.id].subscriptionPaisePerKg / 100 * item.weightKg * item.packs
+      })),
+      productsSubtotal: productsAmountPaise / 100,
+      deliveryFee: SUBSCRIPTION_DELIVERY_FEE_PAISE / 100,
+      total: amountPaise / 100,
+      frequency: FREQUENCIES[payload.frequency].label,
+      emailReminderConsent: payload.emailReminderConsent === true
+    } });
+    createdOrderId = String(order.orderId || "");
+    if (order.duplicate) {
+      if (order.checkoutUrl && order.subscriptionId) return { status: 200, body: {
+        subscription_id: order.subscriptionId, checkout_url: order.checkoutUrl,
+        amount_paise: Math.round(Number(order.total) * 100),
+        message: `Continue to your existing Razorpay ${paymentMode(env) === "live" ? "Live" : "Test"} Mode checkout.`
+      } };
+      return { status: 409, body: { error: "This checkout is already being prepared or needs review. Please wait a moment or contact info@vrajnaturals.com before retrying." } };
+    }
+    notes.order_id = String(order.orderId).slice(0, 255);
     const subscription = await razorpayRequest("/subscriptions", env, {
-      plan_id: planId,
-      total_count: 120,
+      plan_id: plan.id,
+      total_count: subscriptionCycleLimit(FREQUENCIES[payload.frequency]),
       quantity: 1,
-      customer_notify: 1,
+      customer_notify: 0,
       notes
     });
     if (!subscription.short_url) {
       console.error("Razorpay subscription created without short_url", subscription.id);
-      return json({ error: "Subscription was created but no checkout link was returned. Please contact support." }, 502);
+      await ordersApi(env, "checkout-failed", { orderId: order.orderId, reason: "Razorpay did not return a checkout URL." }).catch(() => {});
+      return { status: 502, body: { error: "Razorpay did not return a subscription checkout link. Please check the Razorpay dashboard before retrying." } };
     }
-    return json({
+    await ordersApi(env, "checkout-created", {
+      orderId: order.orderId, subscriptionId: subscription.id, planId: plan.id, checkoutUrl: subscription.short_url
+    });
+    return { status: 201, body: {
       subscription_id: subscription.id,
       checkout_url: subscription.short_url,
       amount_paise: amountPaise,
-      message: "Continue to Razorpay to review and authorise the recurring payment."
-    }, 201);
+      message: `Continue to Razorpay ${paymentMode(env) === "live" ? "Live" : "Test"} Mode to review and authorise the recurring payment.`
+    } };
   } catch (error) {
+    if (createdOrderId) await ordersApi(env, "checkout-failed", { orderId: createdOrderId, reason: "Checkout setup could not be completed." }).catch(() => {});
     console.error("Subscription creation failed", error.message);
-    return json({ error: "We couldn't create your subscription. Please try again later." }, 502);
+    return { status: 502, body: { error: error.message || "We couldn't create the subscription. Please check Razorpay before retrying." } };
   }
+}
+
+function validateShopOrder(payload) {
+  if (!payload || typeof payload !== "object") return "Invalid request.";
+  const customer = payload.customer || {};
+  const shipping = payload.shipping || {};
+  if (typeof customer.name !== "string" || !customer.name.trim() || customer.name.length > 100) return "Enter a valid name.";
+  if (typeof customer.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email) || customer.email.length > 150) return "Enter a valid email address.";
+  if (!/^[0-9+() -]{8,20}$/.test(customer.phone || "")) return "Enter a valid phone number.";
+  if (typeof shipping.address1 !== "string" || !shipping.address1.trim() || shipping.address1.length > 200) return "Enter a valid delivery address.";
+  if (typeof shipping.city !== "string" || !shipping.city.trim() || shipping.city.length > 100 || typeof shipping.state !== "string" || !shipping.state.trim() || shipping.state.length > 100) return "Enter a valid city and state.";
+  if (!/^[0-9]{6}$/.test(shipping.postalCode || "")) return "Enter a valid six-digit PIN code.";
+  if (typeof shipping.country !== "string" || !shipping.country.trim() || shipping.country.length > 60) return "Enter a valid country.";
+  if (!Array.isArray(payload.items) || payload.items.length < 1 || payload.items.length > 8) return "Select one or more valid products.";
+  const seen = new Set();
+  for (const item of payload.items) {
+    if (!item || !PRODUCTS[item.id] || !ALLOWED_WEIGHTS_KG.has(item.weightKg) || !Number.isInteger(item.packs) || item.packs < 1 || item.packs > 50 || seen.has(item.id)) return "One or more selected products or quantities are invalid.";
+    seen.add(item.id);
+  }
+  return null;
+}
+
+function shopOrderAmounts(items) {
+  const totalWeightKg = items.reduce((sum, item) => sum + item.weightKg * item.packs, 0);
+  const productsAmountPaise = items.reduce((sum, item) => sum + PRODUCTS[item.id].regularPaisePerKg * item.weightKg * item.packs, 0);
+  const deliveryFeePaise = totalWeightKg <= 2 ? SHOP_DELIVERY_FEE_UP_TO_2KG_PAISE : SHOP_DELIVERY_FEE_OVER_2KG_PAISE;
+  return { totalWeightKg, productsAmountPaise, deliveryFeePaise, amountPaise: productsAmountPaise + deliveryFeePaise };
+}
+
+async function createShopOrder(payload, env, idempotencyKey) {
+  const unavailable = paymentsUnavailable(env);
+  if (unavailable) return { status: 503, body: { error: unavailable } };
+  const amounts = shopOrderAmounts(payload.items);
+  const summary = payload.items.map(item => `${PRODUCTS[item.id].name} ${item.weightKg}kg x${item.packs}`).join("; ");
+  let sheetOrderId = "";
+  try {
+    const order = await ordersApi(env, "create-order", { order: {
+      localRequestId: idempotencyKey, customerName: payload.customer.name, email: payload.customer.email, phone: payload.customer.phone,
+      address1: payload.shipping.address1, address2: payload.shipping.address2 || "", city: payload.shipping.city,
+      state: payload.shipping.state, postalCode: payload.shipping.postalCode, country: payload.shipping.country,
+      items: payload.items.map(item => ({
+        id: item.id, name: PRODUCTS[item.id].name, weightKg: item.weightKg, packs: item.packs,
+        unitPricePerKg: PRODUCTS[item.id].regularPaisePerKg / 100,
+        lineTotal: PRODUCTS[item.id].regularPaisePerKg / 100 * item.weightKg * item.packs
+      })),
+      productsSubtotal: amounts.productsAmountPaise / 100, deliveryFee: amounts.deliveryFeePaise / 100,
+      total: amounts.amountPaise / 100, frequency: "One-time order", emailReminderConsent: false
+    } });
+    sheetOrderId = String(order.orderId || "");
+    if (order.duplicate && order.subscriptionId) {
+      const existing = await razorpayRequest(`/orders/${encodeURIComponent(order.subscriptionId)}`, env);
+      if (existing?.id && Number(existing.amount) === amounts.amountPaise) return { status: 200, body: {
+        order_id: existing.id, amount: existing.amount, currency: existing.currency, key_id: env.RAZORPAY_KEY_ID,
+        local_order_id: sheetOrderId, items: payload.items
+      } };
+      return { status: 409, body: { error: "This checkout is already being prepared or needs review. Please wait a moment or contact info@vrajnaturals.com before retrying." } };
+    }
+    const rzpOrder = await razorpayRequest("/orders", env, {
+      amount: amounts.amountPaise, currency: "INR", receipt: idempotencyKey.slice(0, 40),
+      notes: { vraj_order_id: sheetOrderId, local_request_id: idempotencyKey, product_summary: summary.slice(0, 255), total_weight_kg: String(amounts.totalWeightKg), delivery_fee_paise: String(amounts.deliveryFeePaise) }
+    });
+    await ordersApi(env, "checkout-created", { orderId: sheetOrderId, subscriptionId: rzpOrder.id, planId: "One-time order", checkoutUrl: "" });
+    return { status: 201, body: {
+      order_id: rzpOrder.id, amount: rzpOrder.amount, currency: rzpOrder.currency,
+      key_id: env.RAZORPAY_KEY_ID, local_order_id: sheetOrderId, items: payload.items
+    } };
+  } catch (error) {
+    if (sheetOrderId) await ordersApi(env, "checkout-failed", { orderId: sheetOrderId, reason: "One-time checkout setup could not be completed." }).catch(() => {});
+    console.error("One-time checkout creation failed", error.message);
+    return { status: 502, body: { error: error.message || "We couldn't start secure payment. Please try again or contact us." } };
+  }
+}
+
+async function handleShopOrder(request, env) {
+  const key = request.headers.get("Idempotency-Key") || "";
+  if (!/^[A-Za-z0-9_-]{16,100}$/.test(key)) return json({ error: "A valid idempotency key is required." }, 400);
+  let payload;
+  try { payload = await request.json(); } catch { return json({ error: "Invalid JSON request." }, 400); }
+  const validationError = validateShopOrder(payload);
+  if (validationError) return json({ error: validationError }, 400);
+  const fingerprintBytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(payload)));
+  const fingerprint = [...new Uint8Array(fingerprintBytes)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  const now = Date.now();
+  for (const [cachedKey, value] of idempotentRequests) if (value.expiresAt <= now) idempotentRequests.delete(cachedKey);
+  const previous = idempotentRequests.get(key);
+  if (previous) {
+    if (previous.fingerprint !== fingerprint) return json({ error: "This request key was already used for different order details. Refresh the page and try again." }, 409);
+    const result = await previous.promise;
+    return json(result.body, result.status);
+  }
+  const promise = createShopOrder(payload, env, key);
+  idempotentRequests.set(key, { fingerprint, promise, expiresAt: now + IDEMPOTENCY_TTL_MS });
+  const result = await promise;
+  idempotentRequests.set(key, { fingerprint, promise: Promise.resolve(result), expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });
+  return json(result.body, result.status);
+}
+
+async function handleShopPaymentVerification(request, env) {
+  const unavailable = paymentsUnavailable(env);
+  if (unavailable) return json({ error: unavailable }, 503);
+  let payload;
+  try { payload = await request.json(); } catch { return json({ error: "Invalid JSON request." }, 400); }
+  const orderId = String(payload.razorpay_order_id || "");
+  const paymentId = String(payload.razorpay_payment_id || "");
+  const signature = String(payload.razorpay_signature || "");
+  const localOrderId = String(payload.local_order_id || "");
+  if (!/^order_[A-Za-z0-9]+$/.test(orderId) || !/^pay_[A-Za-z0-9]+$/.test(paymentId) || !localOrderId || localOrderId.length > 100) return json({ error: "Payment details are incomplete." }, 400);
+  if (!await verifyWebhookSignature(new TextEncoder().encode(`${orderId}|${paymentId}`), signature, env.RAZORPAY_KEY_SECRET)) return json({ error: "We could not verify the payment response. Please contact info@vrajnaturals.com before retrying." }, 400);
+  try {
+    const rzpOrder = await razorpayRequest(`/orders/${encodeURIComponent(orderId)}`, env);
+    if (String(rzpOrder.notes?.vraj_order_id || "") !== localOrderId) return json({ error: "This payment does not match the saved order." }, 400);
+    const payment = await razorpayRequest(`/payments/${encodeURIComponent(paymentId)}`, env);
+    if (payment.order_id !== orderId || !["captured", "authorized"].includes(payment.status)) return json({ error: "Payment is still being confirmed. Please wait for the confirmation email before trying again." }, 409);
+    const result = await ordersApi(env, "payment-event", { event: {
+      eventId: `checkout-${paymentId}-${payment.status}`, eventType: payment.status === "captured" ? "order.paid" : "order.authorized",
+      subscriptionId: orderId, paymentId, paymentStatus: payment.status, amount: Number(payment.amount || 0) / 100
+    } });
+    return json({ ok: true, status: payment.status, matched: Boolean(result.matched) });
+  } catch (error) {
+    console.error("One-time payment verification failed", error.message);
+    return json({ error: "Payment may have completed, but order confirmation is delayed. Please check your email or contact info@vrajnaturals.com." }, 503);
+  }
+}
+
+function safeEqual(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+async function verifyWebhookSignature(rawBody, signature, secret) {
+  if (!signature || !secret) return false;
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const digest = new Uint8Array(await crypto.subtle.sign("HMAC", key, rawBody));
+  const expected = [...digest].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  return safeEqual(signature.toLowerCase(), expected);
+}
+
+async function handleRazorpayWebhook(request, env) {
+  if (!credentialsMatchMode(env)) return json({ error: "Razorpay credentials do not match this Worker environment." }, 503);
+  if (!env.RAZORPAY_WEBHOOK_SECRET) return json({ error: "Webhook secret is not configured." }, 503);
+  const rawBody = await request.arrayBuffer();
+  const signature = request.headers.get("X-Razorpay-Signature") || "";
+  if (!await verifyWebhookSignature(rawBody, signature, env.RAZORPAY_WEBHOOK_SECRET)) return json({ error: "Invalid webhook signature." }, 401);
+
+  let payload;
+  try { payload = JSON.parse(new TextDecoder().decode(rawBody)); }
+  catch { return json({ error: "Invalid webhook payload." }, 400); }
+  const eventType = String(payload.event || "");
+  const supported = new Set(["subscription.activated", "subscription.charged", "subscription.pending", "subscription.halted", "subscription.cancelled", "payment.failed", "payment.captured", "order.paid"]);
+  if (!supported.has(eventType)) return json({ ok: true, ignored: true });
+
+  const subscription = payload.payload?.subscription?.entity || {};
+  const order = payload.payload?.order?.entity || {};
+  const payment = payload.payload?.payment?.entity || {};
+  const subscriptionId = subscription.id || payment.subscription_id || payment.order_id || order.id || "";
+  if (!subscriptionId) return json({ error: "Webhook has no subscription or order ID." }, 400);
+  const data = await ordersApi(env, "payment-event", { event: {
+    eventId: request.headers.get("X-Razorpay-Event-Id") || payload.id || "",
+    eventType,
+    subscriptionId,
+    paymentId: payment.id || "",
+    paymentStatus: payment.status || subscription.status || eventType,
+    amount: Number(payment.amount || order.amount_paid || 0) / 100,
+    failureReason: payment.error_description || payment.error_reason || payment.error_code || ""
+  } });
+  return json({ ok: true, matched: Boolean(data.matched), duplicate: Boolean(data.duplicate) });
+}
+
+async function handleSubscription(request, env) {
+  const key = request.headers.get("Idempotency-Key") || "";
+  if (!/^[A-Za-z0-9_-]{16,100}$/.test(key)) return json({ error: "A valid idempotency key is required." }, 400);
+  let payload;
+  try { payload = await request.json(); } catch { return json({ error: "Invalid JSON request." }, 400); }
+  const validationError = validatePayload(payload);
+  if (validationError) return json({ error: validationError }, 400);
+
+  const fingerprintBytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(payload)));
+  const fingerprint = [...new Uint8Array(fingerprintBytes)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  const now = Date.now();
+  for (const [cachedKey, value] of idempotentRequests) if (value.expiresAt <= now) idempotentRequests.delete(cachedKey);
+  const previous = idempotentRequests.get(key);
+  if (previous) {
+    if (previous.fingerprint !== fingerprint) return json({ error: "This request key was already used for different subscription details. Refresh the page and try again." }, 409);
+    const result = await previous.promise;
+    return json(result.body, result.status);
+  }
+
+  const promise = createSubscription(payload, env, key);
+  idempotentRequests.set(key, { fingerprint, promise, expiresAt: now + IDEMPOTENCY_TTL_MS });
+  const result = await promise;
+  idempotentRequests.set(key, { fingerprint, promise: Promise.resolve(result), expiresAt: Date.now() + IDEMPOTENCY_TTL_MS });
+  return json(result.body, result.status);
 }
 
 export default {
@@ -182,14 +490,35 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/health" && request.method === "GET") {
-      return json({ ok: true, service: "vraj-naturals-worker", paymentsConfigured: Boolean(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET) }, 200, cors);
+      return json({ ok: true, service: "vraj-naturals-worker", mode: paymentMode(env), paymentsEnabled: env.PAYMENTS_ENABLED !== "false", credentialsConfigured: Boolean(credentialsMatchMode(env) && env.RAZORPAY_KEY_SECRET && env.RAZORPAY_WEBHOOK_SECRET && env.ORDERS_WEB_APP_URL && env.ORDERS_API_TOKEN) }, 200, cors);
     }
     if (url.pathname === "/api/subscriptions" && request.method === "POST") {
       if (!env.ALLOWED_ORIGIN || origin !== env.ALLOWED_ORIGIN) return json({ error: "Origin not allowed." }, 403, cors);
-      const response = await createSubscription(request, env);
+      const response = await handleSubscription(request, env);
       const headers = new Headers(response.headers);
       Object.entries(cors).forEach(([key, value]) => headers.set(key, value));
       return new Response(response.body, { status: response.status, headers });
+    }
+    if ((url.pathname === "/api/orders" || url.pathname === "/api/orders/create") && request.method === "POST") {
+      if (!env.ALLOWED_ORIGIN || origin !== env.ALLOWED_ORIGIN) return json({ error: "Origin not allowed." }, 403, cors);
+      const response = await handleShopOrder(request, env);
+      const headers = new Headers(response.headers);
+      Object.entries(cors).forEach(([key, value]) => headers.set(key, value));
+      return new Response(response.body, { status: response.status, headers });
+    }
+    if (url.pathname === "/api/orders/verify" && request.method === "POST") {
+      if (!env.ALLOWED_ORIGIN || origin !== env.ALLOWED_ORIGIN) return json({ error: "Origin not allowed." }, 403, cors);
+      const response = await handleShopPaymentVerification(request, env);
+      const headers = new Headers(response.headers);
+      Object.entries(cors).forEach(([key, value]) => headers.set(key, value));
+      return new Response(response.body, { status: response.status, headers });
+    }
+    if (url.pathname === "/api/razorpay/webhook" && request.method === "POST") {
+      try { return await handleRazorpayWebhook(request, env); }
+      catch (error) {
+        console.error("Webhook processing failed", error.message);
+        return json({ error: "Webhook could not be processed; Razorpay may retry it." }, 503);
+      }
     }
     return json({ error: "Not found." }, 404, cors);
   }

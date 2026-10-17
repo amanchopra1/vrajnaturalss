@@ -1,0 +1,14 @@
+{
+  "name": "vraj-naturals-local-payments-worker",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "npm exec --yes --package=node@22 -- node ./node_modules/wrangler/bin/wrangler.js dev --ip 127.0.0.1 --port 8787"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
