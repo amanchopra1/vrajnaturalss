@@ -1,11 +1,11 @@
 /**
- * VRAJ NATURALS — Cloudflare Worker / Razorpay integration starter
+ * VRAJ NATURALS — Cloudflare Worker / Razorpay integration
  *
  * IMPORTANT:
  * - Payment mode must be set explicitly for each environment.
  * - Razorpay subscriptions require a valid Plan ID and compatible billing
  *   configuration. A unique product mix may need a plan created/approved first.
- * - Production payments remain disabled until PAYMENTS_ENABLED is changed to true.
+ * - Production payment availability is controlled by PAYMENTS_ENABLED in Cloudflare.
  * - No separate database is used by this starter.
  *
  * Required Worker secrets:

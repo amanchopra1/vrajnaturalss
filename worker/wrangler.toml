@@ -2,9 +2,8 @@ name = "vraj-naturals-payments"
 main = "src/index.js"
 compatibility_date = "2026-10-16"
 
-# Local secrets belong in worker/.dev.vars. Test mode is the default.
-# The production environment has a same-origin /api/* route and stays disabled
-# until all production secrets have been added and PAYMENTS_ENABLED is set true.
+# Local secrets belong in worker/.dev.vars. Test mode is the local default.
+# Production uses live Razorpay credentials stored as Cloudflare secrets.
 
 [env.production]
 routes = [
@@ -15,4 +14,4 @@ routes = [
 ALLOWED_ORIGIN = "https://vrajnaturals.com"
 ORDERS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzJ1VcZegy4luW9U-aebWS4Yo3V6T6_JajdlyVEtwZy9ew01hvkOBSGMapolpgYfsL0/exec"
 RAZORPAY_MODE = "live"
-PAYMENTS_ENABLED = "false"
+PAYMENTS_ENABLED = "true"
