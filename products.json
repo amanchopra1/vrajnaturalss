@@ -62,16 +62,16 @@
       "subscriptionPricePerKg": 50,
       "label": "Traditional grain",
       "description": "Bajra for wholesome everyday meals.",
-      "image": "products/bajra-front-5-10kg.png",
+      "image": "products/bajra-front-5-10kg.webp",
       "gallery": [
-        "products/bajra-front-5-10kg.png",
-        "products/bajra-back-5-10kg.png"
+        "products/bajra-front-5-10kg.webp",
+        "products/bajra-back-5-10kg.webp"
       ],
       "packImagesKg": {
         "1": "products/bajra-front.webp",
         "2": "products/bajra-front.webp",
-        "5": "products/bajra-front-5-10kg.png",
-        "10": "products/bajra-front-5-10kg.png"
+        "5": "products/bajra-front-5-10kg.webp",
+        "10": "products/bajra-front-5-10kg.webp"
       },
       "packGalleriesKg": {
         "1": [
@@ -83,12 +83,12 @@
           "products/bajra-back.webp"
         ],
         "5": [
-          "products/bajra-front-5-10kg.png",
-          "products/bajra-back-5-10kg.png"
+          "products/bajra-front-5-10kg.webp",
+          "products/bajra-back-5-10kg.webp"
         ],
         "10": [
-          "products/bajra-front-5-10kg.png",
-          "products/bajra-back-5-10kg.png"
+          "products/bajra-front-5-10kg.webp",
+          "products/bajra-back-5-10kg.webp"
         ]
       },
       "featured": true,
@@ -102,20 +102,20 @@
       "subscriptionPricePerKg": 50,
       "label": "Barley grain",
       "description": "Jau for traditional meals and everyday cooking.",
-      "image": "products/jau-front-5-10kg.png",
+      "image": "products/jau-front-5-10kg.webp",
       "gallery": [
         "products/jau-front.webp",
         "products/jau-back.webp",
-        "products/jau-front-5-10kg.png",
-        "products/jau-back-5-10kg.png"
+        "products/jau-front-5-10kg.webp",
+        "products/jau-back-5-10kg.webp"
       ],
       "featured": true,
       "available": true,
       "packImagesKg": {
         "1": "products/jau-front.webp",
         "2": "products/jau-front.webp",
-        "5": "products/jau-front-5-10kg.png",
-        "10": "products/jau-front-5-10kg.png"
+        "5": "products/jau-front-5-10kg.webp",
+        "10": "products/jau-front-5-10kg.webp"
       },
       "packGalleriesKg": {
         "1": [
@@ -127,12 +127,12 @@
           "products/jau-back.webp"
         ],
         "5": [
-          "products/jau-front-5-10kg.png",
-          "products/jau-back-5-10kg.png"
+          "products/jau-front-5-10kg.webp",
+          "products/jau-back-5-10kg.webp"
         ],
         "10": [
-          "products/jau-front-5-10kg.png",
-          "products/jau-back-5-10kg.png"
+          "products/jau-front-5-10kg.webp",
+          "products/jau-back-5-10kg.webp"
         ]
       }
     },
@@ -144,20 +144,20 @@
       "subscriptionPricePerKg": 55,
       "label": "Broken wheat",
       "description": "Broken wheat for wholesome everyday cooking.",
-      "image": "products/daliya-front-5-10kg.png",
+      "image": "products/daliya-front-5-10kg.webp",
       "gallery": [
         "products/daliya-front.webp",
         "products/daliya-back.webp",
-        "products/daliya-front-5-10kg.png",
-        "products/daliya-back-5-10kg.png"
+        "products/daliya-front-5-10kg.webp",
+        "products/daliya-back-5-10kg.webp"
       ],
       "featured": true,
       "available": true,
       "packImagesKg": {
         "1": "products/daliya-front.webp",
         "2": "products/daliya-front.webp",
-        "5": "products/daliya-front-5-10kg.png",
-        "10": "products/daliya-front-5-10kg.png"
+        "5": "products/daliya-front-5-10kg.webp",
+        "10": "products/daliya-front-5-10kg.webp"
       },
       "packGalleriesKg": {
         "1": [
@@ -169,12 +169,12 @@
           "products/daliya-back.webp"
         ],
         "5": [
-          "products/daliya-front-5-10kg.png",
-          "products/daliya-back-5-10kg.png"
+          "products/daliya-front-5-10kg.webp",
+          "products/daliya-back-5-10kg.webp"
         ],
         "10": [
-          "products/daliya-front-5-10kg.png",
-          "products/daliya-back-5-10kg.png"
+          "products/daliya-front-5-10kg.webp",
+          "products/daliya-back-5-10kg.webp"
         ]
       }
     },
@@ -190,14 +190,14 @@
       "imageAlt": "Everyday Rice product image",
       "gallery": [
         "products/everyday-rice-still-life.webp",
-        "products/everyday-rice-front-5-10kg.png",
-        "products/everyday-rice-back.png"
+        "products/everyday-rice-front-5-10kg.webp",
+        "products/everyday-rice-back.webp"
       ],
       "packImagesKg": {
         "1": "products/everyday-rice-still-life.webp",
         "2": "products/everyday-rice-still-life.webp",
-        "5": "products/everyday-rice-front-5-10kg.png",
-        "10": "products/everyday-rice-front-5-10kg.png"
+        "5": "products/everyday-rice-front-5-10kg.webp",
+        "10": "products/everyday-rice-front-5-10kg.webp"
       },
       "packGalleriesKg": {
         "1": [
@@ -207,12 +207,12 @@
           "products/everyday-rice-still-life.webp"
         ],
         "5": [
-          "products/everyday-rice-front-5-10kg.png",
-          "products/everyday-rice-back.png"
+          "products/everyday-rice-front-5-10kg.webp",
+          "products/everyday-rice-back.webp"
         ],
         "10": [
-          "products/everyday-rice-front-5-10kg.png",
-          "products/everyday-rice-back.png"
+          "products/everyday-rice-front-5-10kg.webp",
+          "products/everyday-rice-back.webp"
         ]
       },
       "featured": false,
@@ -251,14 +251,14 @@
       "gallery": [
         "products/moong-front.webp",
         "products/moong-back.webp",
-        "products/moong-front-5-10kg.png",
-        "products/moong-back-5-10kg.png"
+        "products/moong-front-5-10kg.webp",
+        "products/moong-back-5-10kg.webp"
       ],
       "packImagesKg": {
         "1": "products/moong-front.webp",
         "2": "products/moong-front.webp",
-        "5": "products/moong-front-5-10kg.png",
-        "10": "products/moong-front-5-10kg.png"
+        "5": "products/moong-front-5-10kg.webp",
+        "10": "products/moong-front-5-10kg.webp"
       },
       "packGalleriesKg": {
         "1": [
@@ -270,12 +270,12 @@
           "products/moong-back.webp"
         ],
         "5": [
-          "products/moong-front-5-10kg.png",
-          "products/moong-back-5-10kg.png"
+          "products/moong-front-5-10kg.webp",
+          "products/moong-back-5-10kg.webp"
         ],
         "10": [
-          "products/moong-front-5-10kg.png",
-          "products/moong-back-5-10kg.png"
+          "products/moong-front-5-10kg.webp",
+          "products/moong-back-5-10kg.webp"
         ]
       },
       "featured": false,
