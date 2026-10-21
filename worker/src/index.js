@@ -331,7 +331,7 @@ function couponCodeFrom(value) {
 async function calculateCoupon(env, code, items) {
   const config = await ordersApi(env, "get-coupon", { code });
   if (!config.found || String(config.code || "").toUpperCase() !== code) throw new Error("That coupon code is not valid.");
-  const active = config.active === true || String(config.active).toUpperCase() === "TRUE";
+  const active = config.active === true || ["TRUE", "YES", "ACTIVE", "1"].includes(String(config.active || "").trim().toUpperCase());
   if (!active) throw new Error("That coupon is not active.");
   if (!/one[- ]time/i.test(String(config.applicableOrders || ""))) throw new Error("That coupon is not valid for one-time purchases.");
   const amounts = shopOrderAmounts(items);
