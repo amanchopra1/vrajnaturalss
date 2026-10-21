@@ -559,7 +559,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/health" && request.method === "GET") {
-      return json({ ok: true, service: "vraj-naturals-worker", mode: paymentMode(env), paymentsEnabled: env.PAYMENTS_ENABLED !== "false", credentialsConfigured: Boolean(credentialsMatchMode(env) && env.RAZORPAY_KEY_SECRET && env.RAZORPAY_WEBHOOK_SECRET && env.ORDERS_WEB_APP_URL && env.ORDERS_API_TOKEN) }, 200, cors);
+      return json({ ok: true, service: "vraj-naturals-worker", mode: paymentMode(env), paymentsEnabled: env.PAYMENTS_ENABLED !== "false", shopPaymentsEnabled: env.PAYMENTS_ENABLED !== "false", credentialsConfigured: Boolean(credentialsMatchMode(env) && env.RAZORPAY_KEY_SECRET && env.RAZORPAY_WEBHOOK_SECRET && env.ORDERS_WEB_APP_URL && env.ORDERS_API_TOKEN) }, 200, cors);
     }
     if (url.pathname === "/api/subscriptions" && request.method === "POST") {
       if (!env.ALLOWED_ORIGIN || origin !== env.ALLOWED_ORIGIN) return json({ error: "Origin not allowed." }, 403, cors);
