@@ -317,8 +317,9 @@ function validateShopItems(items) {
   if (!Array.isArray(items) || items.length < 1 || items.length > 8) return "Select one or more valid products.";
   const seen = new Set();
   for (const item of items) {
-    if (!item || !PRODUCTS[item.id] || !ALLOWED_WEIGHTS_KG.has(item.weightKg) || !Number.isInteger(item.packs) || item.packs < 1 || item.packs > 50 || seen.has(item.id)) return "One or more selected products or quantities are invalid.";
-    seen.add(item.id);
+    const variantKey = item && String(item.id) + ":" + String(item.weightKg);
+    if (!item || !PRODUCTS[item.id] || !ALLOWED_WEIGHTS_KG.has(item.weightKg) || !Number.isInteger(item.packs) || item.packs < 1 || item.packs > 50 || seen.has(variantKey)) return "One or more selected products or quantities are invalid.";
+    seen.add(variantKey);
   }
   return null;
 }
