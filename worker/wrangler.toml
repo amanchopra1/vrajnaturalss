@@ -12,6 +12,6 @@ routes = [
 
 [env.production.vars]
 ALLOWED_ORIGIN = "https://vrajnaturals.com"
-ORDERS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzkQgl5mQ7cg-EK23yBUgEm3dT50QpRA2fivGYUEhnTVoAwvk1H9Ebq33JIP6XUEhwo/exec"
+ORDERS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyK3ZNY_hbPuLlF2OWA8WhQ0YBNFW610MfWH_S_FimX1y1jwBmqdfAoepCH91DffXxI/exec"
 RAZORPAY_MODE = "live"
 PAYMENTS_ENABLED = "true"
