@@ -1,0 +1,21 @@
+.coupon-entry {
+  border-top: 1px solid #e5e0d5;
+  margin: 1.25rem 0 0;
+  padding-top: 1rem;
+}
+.coupon-entry .field-label { display: block; margin-bottom: .45rem; }
+.coupon-entry-controls { display: flex; gap: .5rem; }
+.coupon-entry-controls input {
+  min-width: 0;
+  flex: 1;
+  height: 3rem;
+  border: 1px solid #ded9ce;
+  background: #fffdf8;
+  padding: 0 .85rem;
+  color: #24372a;
+  font: inherit;
+}
+.coupon-entry-controls .button { min-height: 3rem; padding: .65rem 1rem; }
+.coupon-entry-controls .button:disabled { opacity: .55; cursor: wait; }
+.coupon-status { min-height: 1.2em; margin: .45rem 0 0; color: #1b5631; font-size: .85rem; }
+.coupon-status.is-error { color: #9b3528; }
