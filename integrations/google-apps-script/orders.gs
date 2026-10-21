@@ -6,6 +6,8 @@
 const ORDERS_SHEET_ID = "1SAlMmmOOQjBfo0seiMzYf_gbo5eFBoZJulfdPt1XNTo";
 const ORDERS_TAB = "Orders";
 const PAYMENT_EVENTS_TAB = "Payment Events";
+const COUPONS_TAB = "Coupons";
+const COUPON_ORDERS_TAB = "Coupon Orders";
 const ORDER_OWNER_EMAIL = "info@vrajnaturals.com";
 const CUSTOMER_SENDER_EMAIL = "vrajnaturals@gmail.com";
 const ORDER_REMINDER_DELAY_MS = 24 * 60 * 1000;
@@ -17,12 +19,22 @@ const ORDER_HEADERS = [
   "Frequency", "Order Status", "Payment Status", "Razorpay Subscription/Order ID",
   "Razorpay Plan ID/Order Type", "Latest Payment ID", "Email Reminder Consent",
   "Reminder Sent At (UTC)", "Last Success Email Event ID", "Last Failure Email Event ID",
-  "Checkout URL", "Last Event", "Last Failure Reason"
+  "Checkout URL", "Last Event", "Last Failure Reason", "Coupon Code", "Discount Amount (INR)"
 ];
 const PAYMENT_EVENT_HEADERS = [
   "Event ID", "Received At (UTC)", "Event Type", "Order ID",
   "Razorpay Subscription/Order ID", "Razorpay Payment ID", "Payment Status",
   "Amount (INR)", "Failure Reason", "Processed Result"
+];
+const COUPON_HEADERS = [
+  "Coupon Code", "Discount Type", "Discount Value", "Applicable Orders",
+  "Applicable Products", "Minimum Order Value (INR)", "Maximum Discount (INR)",
+  "Active", "Usage Limit", "Usage Per Customer", "Discount Delivery Charges"
+];
+const COUPON_ORDER_HEADERS = [
+  "Order ID", "Date (UTC)", "Coupon Code", "Product Subtotal (INR)",
+  "Discount Amount (INR)", "Delivery Fee (INR)", "Final Amount (INR)",
+  "Payment Status", "Razorpay Payment ID"
 ];
 
 /** Standalone Web App entry point for the separate Vraj Naturals Orders project. */
@@ -42,12 +54,28 @@ function setupOrders() {
   PropertiesService.getScriptProperties().setProperty("ORDERS_SPREADSHEET_ID", ORDERS_SHEET_ID);
   ensureOrderTab_(spreadsheet, ORDERS_TAB, ORDER_HEADERS);
   ensureOrderTab_(spreadsheet, PAYMENT_EVENTS_TAB, PAYMENT_EVENT_HEADERS);
+  ensureCouponTabs_(spreadsheet);
   const triggers = ScriptApp.getProjectTriggers();
   if (!triggers.some(trigger => trigger.getHandlerFunction() === "sendAbandonedCheckoutReminders_")) {
     ScriptApp.newTrigger("sendAbandonedCheckoutReminders_").timeBased().everyMinutes(5).create();
   }
   console.log("Orders sheet initialized: " + spreadsheet.getUrl());
   return spreadsheet.getUrl();
+}
+
+function ensureCouponTabs_(spreadsheet) {
+  const coupons = spreadsheet.getSheetByName(COUPONS_TAB) || spreadsheet.insertSheet(COUPONS_TAB);
+  if (coupons.getLastRow() === 0) {
+    coupons.getRange(1, 1, 1, COUPON_HEADERS.length).setValues([COUPON_HEADERS]);
+    coupons.appendRow(["KHUSHI10", "Percentage", 10, "One-time purchases only", "All eligible products", 0, "No cap", true, "Unlimited", "Unlimited", false]);
+  } else if (String(coupons.getRange(1, 1).getValue()) !== COUPON_HEADERS[0]) {
+    throw new Error("Coupons tab exists but its first row is not the expected coupon header.");
+  } else {
+    const codes = coupons.getLastRow() > 1 ? coupons.getRange(2, 1, coupons.getLastRow() - 1, 1).getValues().flat().map(value => String(value || "").trim().toUpperCase()) : [];
+    if (!codes.includes("KHUSHI10")) coupons.appendRow(["KHUSHI10", "Percentage", 10, "One-time purchases only", "All eligible products", 0, "No cap", true, "Unlimited", "Unlimited", false]);
+  }
+  coupons.setFrozenRows(1);
+  ensureOrderTab_(spreadsheet, COUPON_ORDERS_TAB, COUPON_ORDER_HEADERS);
 }
 
 function ensureOrderTab_(spreadsheet, name, headers) {
@@ -76,6 +104,7 @@ function handleOrderApi_(payload) {
     const spreadsheetId = PropertiesService.getScriptProperties().getProperty("ORDERS_SPREADSHEET_ID");
     if (!spreadsheetId) return orderJson_({ ok: false, error: "Run setupOrders() first." });
     const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+    if (payload.action === "get-coupon") return getCouponConfig_(spreadsheet, payload.code);
     if (payload.action === "create-order") return createOrderRow_(spreadsheet, payload.order || {});
     if (payload.action === "checkout-created") return updateCheckoutRow_(spreadsheet, payload);
     if (payload.action === "checkout-failed") return markCheckoutFailed_(spreadsheet, payload);
@@ -87,6 +116,27 @@ function handleOrderApi_(payload) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function getCouponConfig_(spreadsheet, requestedCode) {
+  const code = String(requestedCode || "").trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{1,32}$/.test(code)) return orderJson_({ ok: true, found: false });
+  const sheet = spreadsheet.getSheetByName(COUPONS_TAB);
+  if (!sheet || sheet.getLastRow() < 2) return orderJson_({ ok: true, found: false });
+  const rows = sheet.getDataRange().getValues();
+  const headers = rows[0].map(value => String(value || "").trim());
+  const index = name => headers.indexOf(name);
+  const row = rows.slice(1).find(values => String(values[index("Coupon Code")] || "").trim().toUpperCase() === code);
+  if (!row) return orderJson_({ ok: true, found: false });
+  return orderJson_({
+    ok: true, found: true, code: String(row[index("Coupon Code")] || "").trim().toUpperCase(),
+    discountType: row[index("Discount Type")], discountValue: row[index("Discount Value")],
+    applicableOrders: row[index("Applicable Orders")], applicableProducts: row[index("Applicable Products")],
+    minimumOrderValue: row[index("Minimum Order Value (INR)")], maximumDiscount: row[index("Maximum Discount (INR)")],
+    active: row[index("Active")], usageLimit: row[index("Usage Limit")],
+    usagePerCustomer: row[index("Usage Per Customer")],
+    discountDeliveryCharges: row[index("Discount Delivery Charges")]
+  });
 }
 
 function createOrderRow_(spreadsheet, order) {
@@ -113,7 +163,8 @@ function createOrderRow_(spreadsheet, order) {
     JSON.stringify(items).slice(0, 45000), Number(order.productsSubtotal) || 0,
     Number(order.deliveryFee) || 0, Number(order.total) || 0,
     orderCell_(order.frequency), "Creating checkout", "Not paid", "", "", "",
-    order.emailReminderConsent === true ? "Yes" : "No", "", "", "", "", "", ""
+    order.emailReminderConsent === true ? "Yes" : "No", "", "", "", "", "", "",
+    orderCell_(order.couponCode || ""), Number(order.discountAmount) || 0
   ]);
   SpreadsheetApp.flush();
   return orderJson_({ ok: true, orderId, duplicate: false });
@@ -167,8 +218,34 @@ function recordPaymentEvent_(spreadsheet, event) {
     orderCell_(subscriptionId), orderCell_(paymentId), orderCell_(paymentStatus),
     Number(event.amount) || 0, orderCell_(failureReason), result
   ]);
+  if (row && ["order.paid", "payment.captured"].includes(eventType)) recordCouponOrder_(spreadsheet, orderSheet, row, paymentId, now);
   SpreadsheetApp.flush();
   return orderJson_({ ok: true, duplicate: false, matched: Boolean(row) });
+}
+
+function recordCouponOrder_(spreadsheet, orderSheet, orderRow, paymentId, dateUtc) {
+  const frequency = String(orderSheet.getRange(orderRow, 18).getValue() || "");
+  const couponCode = String(orderSheet.getRange(orderRow, 31).getValue() || "").trim().toUpperCase();
+  if (frequency !== "One-time order" || !couponCode) return;
+  const orderId = String(orderSheet.getRange(orderRow, 1).getValue() || "");
+  const couponSheet = spreadsheet.getSheetByName(COUPON_ORDERS_TAB);
+  if (!couponSheet || !orderId) throw new Error("Coupon Orders tab is unavailable.");
+  const lastRow = couponSheet.getLastRow();
+  if (lastRow > 1) {
+    const existing = couponSheet.getRange(2, 1, lastRow - 1, 1).createTextFinder(orderId).matchEntireCell(true).findNext();
+    if (existing) {
+      couponSheet.getRange(existing.getRow(), 8, 1, 2).setValues([["Paid", orderCell_(paymentId)]]);
+      return;
+    }
+  }
+  couponSheet.appendRow([
+    orderCell_(orderId), dateUtc, orderCell_(couponCode),
+    Number(orderSheet.getRange(orderRow, 15).getValue()) || 0,
+    Number(orderSheet.getRange(orderRow, 32).getValue()) || 0,
+    Number(orderSheet.getRange(orderRow, 16).getValue()) || 0,
+    Number(orderSheet.getRange(orderRow, 17).getValue()) || 0,
+    "Paid", orderCell_(paymentId)
+  ]);
 }
 
 function applyPaymentStatus_(sheet, row, event, now) {
