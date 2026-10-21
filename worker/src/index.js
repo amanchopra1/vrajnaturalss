@@ -340,8 +340,13 @@ async function calculateCoupon(env, code, items) {
   const type = String(config.discountType || "").trim().toLowerCase();
   const value = Number(config.discountValue);
   if (type !== "percentage" || !Number.isFinite(value) || value <= 0 || value > 100) throw new Error("This coupon is not configured correctly.");
-  const cap = String(config.maximumDiscount || "").toLowerCase();
-  const capPaise = ["", "no cap", "unlimited", "none"].includes(cap) ? amounts.productsAmountPaise : Math.max(0, Math.round(Number(cap) * 100));
+  const cap = String(config.maximumDiscount || "").trim().toLowerCase();
+  let capPaise = amounts.productsAmountPaise;
+  if (!["", "no cap", "unlimited", "none"].includes(cap)) {
+    const capValue = Number(cap);
+    if (!Number.isFinite(capValue) || capValue < 0) throw new Error("This coupon is not configured correctly.");
+    capPaise = Math.round(capValue * 100);
+  }
   const discountPaise = Math.min(amounts.productsAmountPaise, capPaise, Math.round(amounts.productsAmountPaise * value / 100));
   return { code, amounts: shopOrderAmounts(items, discountPaise) };
 }
