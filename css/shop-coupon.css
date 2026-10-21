@@ -16,6 +16,23 @@
   font: inherit;
 }
 .coupon-entry-controls .button { min-height: 3rem; padding: .65rem 1rem; }
+.coupon-entry-controls [data-coupon-apply] {
+  border: 1px solid #173d24;
+  background: #173d24;
+  color: #fbf8ef;
+  font-weight: 600;
+  letter-spacing: .05em;
+  transition: background-color .18s ease, border-color .18s ease, transform .18s ease;
+}
+.coupon-entry-controls [data-coupon-apply]:hover:not(:disabled) {
+  border-color: #245a36;
+  background: #245a36;
+  color: #fffdf8;
+}
+.coupon-entry-controls [data-coupon-apply]:focus-visible {
+  outline: 2px solid #b68a43;
+  outline-offset: 2px;
+}
 .coupon-entry-controls .button:disabled { opacity: .55; cursor: wait; }
 .coupon-status { min-height: 1.2em; margin: .45rem 0 0; color: #1b5631; font-size: .85rem; }
 .coupon-status.is-error { color: #9b3528; }
