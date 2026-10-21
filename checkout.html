@@ -24,7 +24,7 @@
   <link rel="icon" type="image/webp" href="/images/vraj-naturals-logo.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=20261017-07"><link rel="stylesheet" href="/css/responsive.css?v=20261017-03">
+  <link rel="stylesheet" href="/css/style.css?v=20261017-07"><link rel="stylesheet" href="/css/responsive.css?v=20261017-03"><link rel="stylesheet" href="/css/shop-coupon.css?v=20261021-01">
   <script src="/js/script.js?v=20261017-12" defer></script><script src="/js/vraj-circle.js?v=20261017-03" defer></script><script src="/js/shop-checkout.js?v=20261017-12" defer></script>
   <link rel="canonical" href="https://vrajnaturals.com/checkout.html">
 </head>
@@ -54,6 +54,15 @@
         <aside class="order-summary shop-checkout-summary">
           <p class="eyebrow">YOUR SELECTION</p><h2>Order summary</h2>
           <div data-shop-summary><p class="muted">Loading your selection…</p></div>
+          <div class="coupon-entry" data-coupon-form>
+            <label class="field-label" for="shop-coupon-code">Coupon code</label>
+            <div class="coupon-entry-controls">
+              <input id="shop-coupon-code" name="couponCode" autocomplete="off" maxlength="32" aria-describedby="coupon-status">
+              <button class="button button-outline" type="button" data-coupon-apply>Apply</button>
+            </div>
+            <p class="coupon-status" id="coupon-status" data-coupon-status role="status" aria-live="polite"></p>
+          </div>
+          <div class="summary-line" data-coupon-discount-row hidden><span>Coupon discount</span><strong data-coupon-discount></strong></div>
           <div class="summary-line"><span>Delivery fee <small data-shop-total-weight></small></span><strong data-shop-delivery>Calculating...</strong></div>
           <div class="summary-total"><span>Total</span><strong data-shop-total>Calculating...</strong></div>
           <p class="summary-note shop-bulk-note" data-shop-bulk-note hidden>For orders above 500 kg, please contact us at <a href="tel:+918860493812">+91 8860493812</a> for a customised quotation.</p>
