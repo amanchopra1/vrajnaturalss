@@ -299,26 +299,80 @@ function validateShopOrder(payload) {
   if (typeof shipping.city !== "string" || !shipping.city.trim() || shipping.city.length > 100 || typeof shipping.state !== "string" || !shipping.state.trim() || shipping.state.length > 100) return "Enter a valid city and state.";
   if (!/^[0-9]{6}$/.test(shipping.postalCode || "")) return "Enter a valid six-digit PIN code.";
   if (typeof shipping.country !== "string" || !shipping.country.trim() || shipping.country.length > 60) return "Enter a valid country.";
-  if (!Array.isArray(payload.items) || payload.items.length < 1 || payload.items.length > 8) return "Select one or more valid products.";
+  const itemsError = validateShopItems(payload.items);
+  if (itemsError) return itemsError;
+  if (payload.couponCode != null && (typeof payload.couponCode !== "string" || payload.couponCode.length > 32)) return "Invalid coupon code.";
+  return null;
+}
+
+function shopOrderAmounts(items, discountPaise = 0) {
+  const totalWeightKg = items.reduce((sum, item) => sum + item.weightKg * item.packs, 0);
+  const productsAmountPaise = items.reduce((sum, item) => sum + PRODUCTS[item.id].regularPaisePerKg * item.weightKg * item.packs, 0);
+  const deliveryFeePaise = totalWeightKg <= 2 ? SHOP_DELIVERY_FEE_UP_TO_2KG_PAISE : SHOP_DELIVERY_FEE_OVER_2KG_PAISE;
+  const boundedDiscountPaise = Math.max(0, Math.min(productsAmountPaise, Math.trunc(discountPaise)));
+  return { totalWeightKg, productsAmountPaise, discountPaise: boundedDiscountPaise, deliveryFeePaise, amountPaise: productsAmountPaise - boundedDiscountPaise + deliveryFeePaise };
+}
+
+function validateShopItems(items) {
+  if (!Array.isArray(items) || items.length < 1 || items.length > 8) return "Select one or more valid products.";
   const seen = new Set();
-  for (const item of payload.items) {
+  for (const item of items) {
     if (!item || !PRODUCTS[item.id] || !ALLOWED_WEIGHTS_KG.has(item.weightKg) || !Number.isInteger(item.packs) || item.packs < 1 || item.packs > 50 || seen.has(item.id)) return "One or more selected products or quantities are invalid.";
     seen.add(item.id);
   }
   return null;
 }
 
-function shopOrderAmounts(items) {
-  const totalWeightKg = items.reduce((sum, item) => sum + item.weightKg * item.packs, 0);
-  const productsAmountPaise = items.reduce((sum, item) => sum + PRODUCTS[item.id].regularPaisePerKg * item.weightKg * item.packs, 0);
-  const deliveryFeePaise = totalWeightKg <= 2 ? SHOP_DELIVERY_FEE_UP_TO_2KG_PAISE : SHOP_DELIVERY_FEE_OVER_2KG_PAISE;
-  return { totalWeightKg, productsAmountPaise, deliveryFeePaise, amountPaise: productsAmountPaise + deliveryFeePaise };
+function couponCodeFrom(value) {
+  const code = String(value || "").trim().toUpperCase();
+  return /^[A-Z0-9_-]{1,32}$/.test(code) ? code : "";
+}
+
+async function calculateCoupon(env, code, items) {
+  const config = await ordersApi(env, "get-coupon", { code });
+  if (!config.found || String(config.code || "").toUpperCase() !== code) throw new Error("That coupon code is not valid.");
+  const active = config.active === true || String(config.active).toUpperCase() === "TRUE";
+  if (!active) throw new Error("That coupon is not active.");
+  if (!/one[- ]time/i.test(String(config.applicableOrders || ""))) throw new Error("That coupon is not valid for one-time purchases.");
+  const amounts = shopOrderAmounts(items);
+  const minimumPaise = Math.max(0, Math.round(Number(config.minimumOrderValue || 0) * 100));
+  if (amounts.productsAmountPaise < minimumPaise) throw new Error("Your product subtotal does not meet this coupon's minimum order value.");
+  const type = String(config.discountType || "").trim().toLowerCase();
+  const value = Number(config.discountValue);
+  if (type !== "percentage" || !Number.isFinite(value) || value <= 0 || value > 100) throw new Error("This coupon is not configured correctly.");
+  const cap = String(config.maximumDiscount || "").toLowerCase();
+  const capPaise = ["", "no cap", "unlimited", "none"].includes(cap) ? amounts.productsAmountPaise : Math.max(0, Math.round(Number(cap) * 100));
+  const discountPaise = Math.min(amounts.productsAmountPaise, capPaise, Math.round(amounts.productsAmountPaise * value / 100));
+  return { code, amounts: shopOrderAmounts(items, discountPaise) };
+}
+
+async function handleCouponValidation(request, env) {
+  let payload;
+  try { payload = await request.json(); } catch { return json({ error: "Invalid JSON request." }, 400); }
+  const code = couponCodeFrom(payload?.code);
+  const validationError = validateShopItems(payload?.items);
+  if (!code) return json({ error: "Enter a valid coupon code." }, 400);
+  if (validationError) return json({ error: validationError }, 400);
+  try {
+    const { amounts } = await calculateCoupon(env, code, payload.items);
+    return json({ ok: true, code, productSubtotal: amounts.productsAmountPaise / 100, discountAmount: amounts.discountPaise / 100, discountedProductSubtotal: (amounts.productsAmountPaise - amounts.discountPaise) / 100 });
+  } catch (error) {
+    const unavailable = /Google Orders Sheet|sheet|temporarily unavailable|reached/i.test(error.message);
+    return json({ error: unavailable ? "Coupon validation is temporarily unavailable. Please try again shortly." : error.message }, unavailable ? 503 : 400);
+  }
 }
 
 async function createShopOrder(payload, env, idempotencyKey) {
   const unavailable = paymentsUnavailable(env);
   if (unavailable) return { status: 503, body: { error: unavailable } };
-  const amounts = shopOrderAmounts(payload.items);
+  let coupon = { code: "", amounts: shopOrderAmounts(payload.items) };
+  const requestedCoupon = couponCodeFrom(payload.couponCode);
+  if (payload.couponCode && !requestedCoupon) return { status: 400, body: { error: "Invalid coupon code." } };
+  if (requestedCoupon) {
+    try { coupon = await calculateCoupon(env, requestedCoupon, payload.items); }
+    catch (error) { return { status: /Google Orders Sheet|sheet|temporarily unavailable|reached/i.test(error.message) ? 503 : 400, body: { error: error.message } }; }
+  }
+  const amounts = coupon.amounts;
   const summary = payload.items.map(item => `${PRODUCTS[item.id].name} ${item.weightKg}kg x${item.packs}`).join("; ");
   let sheetOrderId = "";
   try {
@@ -331,7 +385,8 @@ async function createShopOrder(payload, env, idempotencyKey) {
         unitPricePerKg: PRODUCTS[item.id].regularPaisePerKg / 100,
         lineTotal: PRODUCTS[item.id].regularPaisePerKg / 100 * item.weightKg * item.packs
       })),
-      productsSubtotal: amounts.productsAmountPaise / 100, deliveryFee: amounts.deliveryFeePaise / 100,
+      productsSubtotal: amounts.productsAmountPaise / 100, discountAmount: amounts.discountPaise / 100,
+      couponCode: coupon.code, deliveryFee: amounts.deliveryFeePaise / 100,
       total: amounts.amountPaise / 100, frequency: "One-time order", emailReminderConsent: false
     } });
     sheetOrderId = String(order.orderId || "");
@@ -339,18 +394,27 @@ async function createShopOrder(payload, env, idempotencyKey) {
       const existing = await razorpayRequest(`/orders/${encodeURIComponent(order.subscriptionId)}`, env);
       if (existing?.id && Number(existing.amount) === amounts.amountPaise) return { status: 200, body: {
         order_id: existing.id, amount: existing.amount, currency: existing.currency, key_id: env.RAZORPAY_KEY_ID,
-        local_order_id: sheetOrderId, items: payload.items
+        local_order_id: sheetOrderId, items: payload.items,
+        product_subtotal: amounts.productsAmountPaise, discount_amount: amounts.discountPaise,
+        delivery_fee: amounts.deliveryFeePaise, final_amount: amounts.amountPaise
       } };
       return { status: 409, body: { error: "This checkout is already being prepared or needs review. Please wait a moment or contact info@vrajnaturals.com before retrying." } };
     }
     const rzpOrder = await razorpayRequest("/orders", env, {
       amount: amounts.amountPaise, currency: "INR", receipt: idempotencyKey.slice(0, 40),
-      notes: { vraj_order_id: sheetOrderId, local_request_id: idempotencyKey, product_summary: summary.slice(0, 255), total_weight_kg: String(amounts.totalWeightKg), delivery_fee_paise: String(amounts.deliveryFeePaise) }
+      notes: {
+        vraj_order_id: sheetOrderId, local_request_id: idempotencyKey,
+        product_summary: summary.slice(0, 255), total_weight_kg: String(amounts.totalWeightKg),
+        products_subtotal_paise: String(amounts.productsAmountPaise), coupon_code: coupon.code,
+        coupon_discount_paise: String(amounts.discountPaise), delivery_fee_paise: String(amounts.deliveryFeePaise)
+      }
     });
     await ordersApi(env, "checkout-created", { orderId: sheetOrderId, subscriptionId: rzpOrder.id, planId: "One-time order", checkoutUrl: "" });
     return { status: 201, body: {
       order_id: rzpOrder.id, amount: rzpOrder.amount, currency: rzpOrder.currency,
-      key_id: env.RAZORPAY_KEY_ID, local_order_id: sheetOrderId, items: payload.items
+      key_id: env.RAZORPAY_KEY_ID, local_order_id: sheetOrderId, items: payload.items,
+      product_subtotal: amounts.productsAmountPaise, discount_amount: amounts.discountPaise,
+      delivery_fee: amounts.deliveryFeePaise, final_amount: amounts.amountPaise, coupon_code: coupon.code
     } };
   } catch (error) {
     if (sheetOrderId) await ordersApi(env, "checkout-failed", { orderId: sheetOrderId, reason: "One-time checkout setup could not be completed." }).catch(() => {});
@@ -398,7 +462,7 @@ async function handleShopPaymentVerification(request, env) {
     const rzpOrder = await razorpayRequest(`/orders/${encodeURIComponent(orderId)}`, env);
     if (String(rzpOrder.notes?.vraj_order_id || "") !== localOrderId) return json({ error: "This payment does not match the saved order." }, 400);
     const payment = await razorpayRequest(`/payments/${encodeURIComponent(paymentId)}`, env);
-    if (payment.order_id !== orderId || !["captured", "authorized"].includes(payment.status)) return json({ error: "Payment is still being confirmed. Please wait for the confirmation email before trying again." }, 409);
+    if (payment.order_id !== orderId || Number(payment.amount) !== Number(rzpOrder.amount) || !["captured", "authorized"].includes(payment.status)) return json({ error: "Payment is still being confirmed. Please wait for the confirmation email before trying again." }, 409);
     const result = await ordersApi(env, "payment-event", { event: {
       eventId: `checkout-${paymentId}-${payment.status}`, eventType: payment.status === "captured" ? "order.paid" : "order.authorized",
       subscriptionId: orderId, paymentId, paymentStatus: payment.status, amount: Number(payment.amount || 0) / 100
@@ -495,6 +559,13 @@ export default {
     if (url.pathname === "/api/subscriptions" && request.method === "POST") {
       if (!env.ALLOWED_ORIGIN || origin !== env.ALLOWED_ORIGIN) return json({ error: "Origin not allowed." }, 403, cors);
       const response = await handleSubscription(request, env);
+      const headers = new Headers(response.headers);
+      Object.entries(cors).forEach(([key, value]) => headers.set(key, value));
+      return new Response(response.body, { status: response.status, headers });
+    }
+    if (url.pathname === "/api/shop/coupon" && request.method === "POST") {
+      if (!env.ALLOWED_ORIGIN || origin !== env.ALLOWED_ORIGIN) return json({ error: "Origin not allowed." }, 403, cors);
+      const response = await handleCouponValidation(request, env);
       const headers = new Headers(response.headers);
       Object.entries(cors).forEach(([key, value]) => headers.set(key, value));
       return new Response(response.body, { status: response.status, headers });
