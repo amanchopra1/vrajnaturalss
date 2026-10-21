@@ -331,7 +331,14 @@ function couponCodeFrom(value) {
 async function calculateCoupon(env, code, items) {
   const config = await ordersApi(env, "get-coupon", { code });
   if (!config.found || String(config.code || "").toUpperCase() !== code) throw new Error("That coupon code is not valid.");
-  const active = config.active === true || ["TRUE", "YES", "ACTIVE", "1"].includes(String(config.active || "").trim().toUpperCase());
+  const activeText = String(config.active == null ? "" : config.active).trim().toUpperCase();
+  const explicitActive = config.active === true || ["TRUE", "YES", "ACTIVE", "1"].includes(activeText);
+  // The current Coupons sheet has the active checkbox in column H, but its
+  // "Active" header is missing. In that layout Apps Script reads H under
+  // usageLimit; recognize TRUE there only when no Active field was returned.
+  const activeFromShiftedHeader = (config.active == null || activeText === "") &&
+    (config.usageLimit === true || String(config.usageLimit || "").trim().toUpperCase() === "TRUE");
+  const active = explicitActive || activeFromShiftedHeader;
   if (!active) throw new Error("That coupon is not active.");
   if (!/one[- ]time/i.test(String(config.applicableOrders || ""))) throw new Error("That coupon is not valid for one-time purchases.");
   const amounts = shopOrderAmounts(items);
