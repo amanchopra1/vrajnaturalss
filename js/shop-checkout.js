@@ -17,6 +17,13 @@
   let productData = [];
   let idempotencyKey = "";
   let onlineCheckoutReady = false;
+  let appliedCoupon = "";
+  let couponDiscount = 0;
+  let couponMessage = "";
+  const couponForm = form.querySelector("[data-coupon-form]");
+  const couponInput = form.querySelector("#shop-coupon-code");
+  const couponStatus = form.querySelector("[data-coupon-status]");
+  const couponApply = form.querySelector("[data-coupon-apply]");
   const deliveryFeeFor = (weight, postalCode, city) => {
     if (weight > 500) return null;
     if (String(postalCode || "").trim() === "125050" && /fatehabad/i.test(String(city || "").trim())) return 0;
@@ -53,9 +60,14 @@
       const lineTotal = product.regularPricePerKg * weightKg * packs;
       return `<div class="summary-line"><span>${safe(product.name)} · ${weightKg} kg × ${packs} pack${packs === 1 ? "" : "s"}</span><strong>${money(lineTotal)}</strong></div>`;
     }).join("");
+    const discountRow = form.querySelector("[data-coupon-discount-row]");
+    discountRow.hidden = !appliedCoupon;
+    form.querySelector("[data-coupon-discount]").textContent = appliedCoupon ? `−${money(couponDiscount)}` : "";
+    couponStatus.textContent = couponMessage;
+    couponStatus.classList.toggle("is-error", Boolean(couponMessage && !appliedCoupon && couponMessage !== "Checking coupon..."));
     form.querySelector("[data-shop-total-weight]").textContent = `(${weight} kg total)`;
     form.querySelector("[data-shop-delivery]").textContent = delivery === null ? "Custom quote" : isFatehabadFreeDelivery(form.elements.postalCode.value, form.elements.city.value) ? "Free" : money(delivery);
-    form.querySelector("[data-shop-total]").textContent = delivery === null ? "Custom quote" : money(subtotal + delivery);
+    form.querySelector("[data-shop-total]").textContent = delivery === null ? "Custom quote" : money(subtotal - couponDiscount + delivery);
     form.querySelector("[data-shop-bulk-note]").hidden = delivery !== null;
     button.disabled = !onlineCheckoutReady;
   }
@@ -97,6 +109,62 @@
     form.querySelector(".checkout-details").innerHTML = `<div class="checkout-complete"><p class="eyebrow">ORDER UPDATE</p><h2>${data.status === "captured" ? "Thank you. Your order is confirmed." : "Payment authorised."}</h2><p>${data.status === "captured" ? "Your payment is confirmed and your order has been recorded. A confirmation email will follow." : "Your bank authorised the payment. We’re waiting for final capture confirmation before marking the order paid."}</p><p>Questions? <a href="mailto:info@vrajnaturals.com">info@vrajnaturals.com</a></p><a class="button button-primary" href="/shop.html">Continue shopping</a></div>`;
   }
 
+  async function applyCoupon() {
+    const code = couponInput.value.trim().toUpperCase();
+    if (!code) {
+      appliedCoupon = "";
+      couponDiscount = 0;
+      couponMessage = "";
+      drawSummary();
+      return;
+    }
+    if (!currentItems().length) {
+      appliedCoupon = "";
+      couponDiscount = 0;
+      couponMessage = "Choose products before applying a coupon.";
+      drawSummary();
+      return;
+    }
+    couponApply.disabled = true;
+    couponMessage = "Checking coupon...";
+    drawSummary();
+    try {
+      const response = await fetch(`${workerUrl}/api/shop/coupon`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          items: items.map(({ id, weightKg, packs }) => ({ id, weightKg: Number(weightKg), packs: Number(packs) }))
+        })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Coupon could not be validated.");
+      appliedCoupon = data.code;
+      couponDiscount = Number(data.discountAmount || 0);
+      couponMessage = `${appliedCoupon} applied. ${money(couponDiscount)} off eligible products.`;
+    } catch (error) {
+      appliedCoupon = "";
+      couponDiscount = 0;
+      couponMessage = error.message || "Coupon could not be validated.";
+    } finally {
+      couponApply.disabled = false;
+      drawSummary();
+    }
+  }
+
+  couponApply.addEventListener("click", applyCoupon);
+  couponInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") { event.preventDefault(); applyCoupon(); }
+  });
+
+  couponInput.addEventListener("input", () => {
+    if (appliedCoupon && couponInput.value.trim().toUpperCase() !== appliedCoupon) {
+      appliedCoupon = "";
+      couponDiscount = 0;
+      couponMessage = "";
+      drawSummary();
+    }
+  });
+
   form.addEventListener("submit", async event => {
     event.preventDefault();
     if (!currentItems().length) {
@@ -122,7 +190,8 @@
         city: form.elements.city.value.trim(), state: form.elements.state.value.trim(),
         postalCode: form.elements.postalCode.value.trim(), country: form.elements.country.value.trim()
       },
-      items: items.map(({ id, weightKg, packs }) => ({ id, weightKg: Number(weightKg), packs: Number(packs) }))
+      items: items.map(({ id, weightKg, packs }) => ({ id, weightKg: Number(weightKg), packs: Number(packs) })),
+      couponCode: appliedCoupon
     };
     button.disabled = true;
     button.setAttribute("aria-busy", "true");
@@ -139,6 +208,11 @@
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "We couldn't prepare payment. Please try again.");
+      if (data.coupon_code) {
+        appliedCoupon = data.coupon_code;
+        couponDiscount = Number(data.discount_amount || 0) / 100;
+        drawSummary();
+      }
       const checkout = new window.Razorpay({
         key: data.key_id,
         order_id: data.order_id,
@@ -202,6 +276,7 @@
           drawSummary();
         }
       }
+      if (!workerUrl) couponApply.disabled = true;
       [form.elements.city, form.elements.postalCode].forEach(field => {
         field.addEventListener("input", drawSummary);
         field.addEventListener("change", drawSummary);
