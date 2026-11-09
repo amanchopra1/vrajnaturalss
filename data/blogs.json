@@ -1,6 +1,18 @@
 {
   "articles": [
     {
+      "id": "sona-moti-journey",
+      "title": "From Seed to Home: The Sona Moti Journey",
+      "slug": "sona-moti-journey",
+      "excerpt": "Follow the Vraj Naturals Sona Moti wheat journey, from seed preparation and field care to harvest and careful packing.",
+      "image": "products/sona-moti-front-1-2kg.webp",
+      "category": "Farming & Farmers",
+      "author": "Vraj Naturals Editorial",
+      "date": "2026-11-09",
+      "featured": false,
+      "url": "/blogs/sona-moti-journey.html"
+    },
+    {
       "id": "sona-moti-wheat",
       "title": "Sona Moti Wheat: Understanding This Traditional Grain",
       "slug": "sonamotiwhytoeat",
