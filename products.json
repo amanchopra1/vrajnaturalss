@@ -290,10 +290,10 @@
       "shippingWeightKg": 2,
       "label": "Handicraft",
       "description": "Bamboo Basket.",
-      "image": "products/bamboo-basket.webp",
+      "image": "https://raw.githubusercontent.com/amanchopra1/vrajnaturalss/main/images/products/bamboo-basket.webp",
       "imageAlt": "Bamboo Basket",
       "gallery": [
-        "products/bamboo-basket.webp"
+        "https://raw.githubusercontent.com/amanchopra1/vrajnaturalss/main/images/products/bamboo-basket.webp"
       ],
       "featured": false,
       "available": true

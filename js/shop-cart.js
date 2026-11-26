@@ -12,7 +12,7 @@
 
   const money = value => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
   const escapeHtml = value => String(value).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
-  const imageUrl = path => `/images/${String(path || "").split("/").map(encodeURIComponent).join("/")}`;
+  const imageUrl = path => /^https?:\/\//i.test(String(path || "")) ? String(path) : `/images/${String(path || "").split("/").map(encodeURIComponent).join("/")}`;
   const imageList = product => [...new Set((product.gallery?.length ? product.gallery : [product.image]).filter(Boolean))];
   const imageForPack = (product, weightKg) => product.packImagesKg?.[String(weightKg)] || product.image || imageList(product)[0];
   function imagesForPack(product, weightKg) {
