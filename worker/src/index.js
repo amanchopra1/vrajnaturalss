@@ -32,7 +32,8 @@ const PRODUCTS = {
   "daliya": { name: "Daliya", regularPaisePerKg: 7500, subscriptionPaisePerKg: 5500 },
   "everyday-rice": { name: "Everyday Rice", regularPaisePerKg: 6000, subscriptionPaisePerKg: 5000 },
   "basmati-rice": { name: "Basmati Rice", regularPaisePerKg: 15000, subscriptionPaisePerKg: 12500 },
-  "moong-dal": { name: "Moong Dal (Sabut Moong)", regularPaisePerKg: 16000, subscriptionPaisePerKg: 14500 }
+  "moong-dal": { name: "Moong Dal (Sabut Moong)", regularPaisePerKg: 16000, subscriptionPaisePerKg: 14500 },
+  "bamboo-basket": { name: "Bamboo Basket", unitPricePaise: 44900, shippingWeightKg: 2 }
 };
 
 const ALLOWED_WEIGHTS_KG = new Set([1, 2, 5, 10]);
@@ -109,7 +110,7 @@ function validatePayload(payload) {
   if (payload.emailReminderConsent !== undefined && typeof payload.emailReminderConsent !== "boolean") return "Invalid email reminder preference.";
   const seen = new Set();
   for (const item of payload.items) {
-    if (!item || !PRODUCTS[item.id] || !ALLOWED_WEIGHTS_KG.has(item.weightKg) || !Number.isInteger(item.packs) || item.packs < 1 || item.packs > 50 || seen.has(item.id)) {
+    if (!item || !PRODUCTS[item.id]?.subscriptionPaisePerKg || !ALLOWED_WEIGHTS_KG.has(item.weightKg) || !Number.isInteger(item.packs) || item.packs < 1 || item.packs > 50 || seen.has(item.id)) {
       return "One or more selected products or quantities are invalid.";
     }
     seen.add(item.id);
@@ -306,8 +307,8 @@ function validateShopOrder(payload) {
 }
 
 function shopOrderAmounts(items, discountPaise = 0) {
-  const totalWeightKg = items.reduce((sum, item) => sum + item.weightKg * item.packs, 0);
-  const productsAmountPaise = items.reduce((sum, item) => sum + PRODUCTS[item.id].regularPaisePerKg * item.weightKg * item.packs, 0);
+  const totalWeightKg = items.reduce((sum, item) => sum + (PRODUCTS[item.id].unitPricePaise ? PRODUCTS[item.id].shippingWeightKg * item.quantity : item.weightKg * item.packs), 0);
+  const productsAmountPaise = items.reduce((sum, item) => sum + (PRODUCTS[item.id].unitPricePaise ? PRODUCTS[item.id].unitPricePaise * item.quantity : PRODUCTS[item.id].regularPaisePerKg * item.weightKg * item.packs), 0);
   const deliveryFeePaise = totalWeightKg <= 2 ? SHOP_DELIVERY_FEE_UP_TO_2KG_PAISE : SHOP_DELIVERY_FEE_OVER_2KG_PAISE;
   const boundedDiscountPaise = Math.max(0, Math.min(productsAmountPaise, Math.trunc(discountPaise)));
   return { totalWeightKg, productsAmountPaise, discountPaise: boundedDiscountPaise, deliveryFeePaise, amountPaise: productsAmountPaise - boundedDiscountPaise + deliveryFeePaise };
@@ -317,8 +318,11 @@ function validateShopItems(items) {
   if (!Array.isArray(items) || items.length < 1 || items.length > 8) return "Select one or more valid products.";
   const seen = new Set();
   for (const item of items) {
-    const variantKey = item && String(item.id) + ":" + String(item.weightKg);
-    if (!item || !PRODUCTS[item.id] || !ALLOWED_WEIGHTS_KG.has(item.weightKg) || !Number.isInteger(item.packs) || item.packs < 1 || item.packs > 50 || seen.has(variantKey)) return "One or more selected products or quantities are invalid.";
+    const product = item && PRODUCTS[item.id];
+    const isUnit = Boolean(product?.unitPricePaise);
+    const valid = isUnit ? Number.isInteger(item.quantity) && item.quantity >= 1 && item.quantity <= 50 : product && ALLOWED_WEIGHTS_KG.has(item.weightKg) && Number.isInteger(item.packs) && item.packs >= 1 && item.packs <= 50;
+    const variantKey = item && String(item.id) + ":" + (isUnit ? "each" : String(item.weightKg));
+    if (!item || !product || !valid || seen.has(variantKey)) return "One or more selected products or quantities are invalid.";
     seen.add(variantKey);
   }
   return null;
@@ -386,18 +390,19 @@ async function createShopOrder(payload, env, idempotencyKey) {
     catch (error) { return { status: /Google Orders Sheet|sheet|temporarily unavailable|reached/i.test(error.message) ? 503 : 400, body: { error: error.message } }; }
   }
   const amounts = coupon.amounts;
-  const summary = payload.items.map(item => `${PRODUCTS[item.id].name} ${item.weightKg}kg x${item.packs}`).join("; ");
+  const summary = payload.items.map(item => PRODUCTS[item.id].unitPricePaise ? `${PRODUCTS[item.id].name} x${item.quantity}` : `${PRODUCTS[item.id].name} ${item.weightKg}kg x${item.packs}`).join("; ");
   let sheetOrderId = "";
   try {
     const order = await ordersApi(env, "create-order", { order: {
       localRequestId: idempotencyKey, customerName: payload.customer.name, email: payload.customer.email, phone: payload.customer.phone,
       address1: payload.shipping.address1, address2: payload.shipping.address2 || "", city: payload.shipping.city,
       state: payload.shipping.state, postalCode: payload.shipping.postalCode, country: payload.shipping.country,
-      items: payload.items.map(item => ({
-        id: item.id, name: PRODUCTS[item.id].name, weightKg: item.weightKg, packs: item.packs,
-        unitPricePerKg: PRODUCTS[item.id].regularPaisePerKg / 100,
-        lineTotal: PRODUCTS[item.id].regularPaisePerKg / 100 * item.weightKg * item.packs
-      })),
+      items: payload.items.map(item => {
+        const product = PRODUCTS[item.id];
+        return product.unitPricePaise
+          ? { id: item.id, name: product.name, quantity: item.quantity, unitLabel: "each", shippingWeightKg: product.shippingWeightKg, unitPrice: product.unitPricePaise / 100, lineTotal: product.unitPricePaise / 100 * item.quantity }
+          : { id: item.id, name: product.name, weightKg: item.weightKg, packs: item.packs, unitPricePerKg: product.regularPaisePerKg / 100, lineTotal: product.regularPaisePerKg / 100 * item.weightKg * item.packs };
+      }),
       productsSubtotal: amounts.productsAmountPaise / 100, discountAmount: amounts.discountPaise / 100,
       couponCode: coupon.code, deliveryFee: amounts.deliveryFeePaise / 100,
       total: amounts.amountPaise / 100, frequency: "One-time order", emailReminderConsent: false

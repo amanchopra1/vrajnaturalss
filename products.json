@@ -280,6 +280,23 @@
       },
       "featured": false,
       "available": true
+    },
+    {
+      "id": "bamboo-basket",
+      "name": "Bamboo Basket",
+      "category": "handicrafts",
+      "unitPrice": 449,
+      "unitLabel": "each",
+      "shippingWeightKg": 2,
+      "label": "Handicraft",
+      "description": "Bamboo Basket.",
+      "image": "products/bamboo-basket.webp",
+      "imageAlt": "Bamboo Basket",
+      "gallery": [
+        "products/bamboo-basket.webp"
+      ],
+      "featured": false,
+      "available": true
     }
   ]
 }

@@ -40,7 +40,7 @@
   function currentItems() {
     return items.map(item => ({
       product: productData.find(product => product.id === item.id),
-      weightKg: Number(item.weightKg), packs: Number(item.packs)
+      weightKg: Number(item.weightKg || 0), packs: Number(item.packs || item.quantity || 0)
     })).filter(item => item.product);
   }
 
@@ -53,12 +53,13 @@
       showStatus("Choose a product from the shop before continuing to payment.", true);
       return;
     }
-    const subtotal = selected.reduce((sum, item) => sum + item.product.regularPricePerKg * item.weightKg * item.packs, 0);
-    const weight = selected.reduce((sum, item) => sum + item.weightKg * item.packs, 0);
+    const subtotal = selected.reduce((sum, item) => sum + (item.product.unitPrice ? item.product.unitPrice * item.packs : item.product.regularPricePerKg * item.weightKg * item.packs), 0);
+    const weight = selected.reduce((sum, item) => sum + (item.product.unitPrice ? item.product.shippingWeightKg * item.packs : item.weightKg * item.packs), 0);
     const delivery = deliveryFeeFor(weight, form.elements.postalCode.value, form.elements.city.value);
     summary.innerHTML = selected.map(({ product, weightKg, packs }) => {
-      const lineTotal = product.regularPricePerKg * weightKg * packs;
-      return `<div class="summary-line"><span>${safe(product.name)} · ${weightKg} kg × ${packs} pack${packs === 1 ? "" : "s"}</span><strong>${money(lineTotal)}</strong></div>`;
+      const lineTotal = product.unitPrice ? product.unitPrice * packs : product.regularPricePerKg * weightKg * packs;
+      const detail = product.unitPrice ? `${packs} item${packs === 1 ? "" : "s"}` : `${weightKg} kg × ${packs} pack${packs === 1 ? "" : "s"}`;
+      return `<div class="summary-line"><span>${safe(product.name)} · ${detail}</span><strong>${money(lineTotal)}</strong></div>`;
     }).join("");
     const discountRow = form.querySelector("[data-coupon-discount-row]");
     discountRow.hidden = !appliedCoupon;
@@ -133,7 +134,7 @@
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           code,
-          items: items.map(({ id, weightKg, packs }) => ({ id, weightKg: Number(weightKg), packs: Number(packs) }))
+          items: items.map(item => Number(item.weightKg || 0) === 0 ? ({ id: item.id, quantity: Number(item.quantity || item.packs) }) : ({ id: item.id, weightKg: Number(item.weightKg), packs: Number(item.packs) }))
         })
       });
       const data = await response.json().catch(() => ({}));
@@ -171,7 +172,7 @@
       showStatus("Choose a product from the shop before continuing to payment.", true);
       return;
     }
-    if (currentItems().reduce((sum, item) => sum + item.weightKg * item.packs, 0) > 500) {
+    if (currentItems().reduce((sum, item) => sum + (item.product.unitPrice ? item.product.shippingWeightKg * item.packs : item.weightKg * item.packs), 0) > 500) {
       showStatus("For orders above 500 kg, please contact us at +91 8860493812 for a customised quotation.", true);
       return;
     }
@@ -190,7 +191,7 @@
         city: form.elements.city.value.trim(), state: form.elements.state.value.trim(),
         postalCode: form.elements.postalCode.value.trim(), country: form.elements.country.value.trim()
       },
-      items: items.map(({ id, weightKg, packs }) => ({ id, weightKg: Number(weightKg), packs: Number(packs) })),
+      items: items.map(item => Number(item.weightKg || 0) === 0 ? ({ id: item.id, quantity: Number(item.quantity || item.packs) }) : ({ id: item.id, weightKg: Number(item.weightKg), packs: Number(item.packs) })),
       couponCode: appliedCoupon
     };
     button.disabled = true;
@@ -252,13 +253,19 @@
       const catalogue = await response.json();
       productData = catalogue.products || [];
       const query = new URLSearchParams(location.search);
-      const fromQuery = query.get("item") ? [{ id: query.get("item"), weightKg: Number(query.get("kg")), packs: Number(query.get("packs")) }] : [];
+      const fromQuery = query.get("item") ? [query.get("quantity") ? ({ id: query.get("item"), quantity: Number(query.get("quantity")) }) : ({ id: query.get("item"), weightKg: Number(query.get("kg")), packs: Number(query.get("packs")) })] : [];
       try { items = JSON.parse(sessionStorage.getItem("vrajShopCheckoutItems") || "[]"); } catch (_) { items = []; }
       if (!Array.isArray(items) || !items.length) {
-        try { items = JSON.parse(localStorage.getItem("vrajNaturalsCartV1") || "[]").map(item => ({ id: item.id, weightKg: Number(item.weightKg), packs: Number(item.quantity) })); } catch (_) { items = []; }
+        try { items = JSON.parse(localStorage.getItem("vrajNaturalsCartV1") || "[]").map(item => Number(item.weightKg) === 0 ? ({ id: item.id, quantity: Number(item.quantity) }) : ({ id: item.id, weightKg: Number(item.weightKg), packs: Number(item.quantity) })); } catch (_) { items = []; }
       }
       if (!Array.isArray(items) || !items.length) items = fromQuery;
-      items = items.filter(item => productData.some(product => product.id === item.id) && [1, 2, 5, 10].includes(Number(item.weightKg)) && Number.isInteger(Number(item.packs)) && Number(item.packs) >= 1 && Number(item.packs) <= 50);
+      items = items.map(item => {
+        const product = productData.find(entry => entry.id === item.id);
+        return product?.unitPrice ? ({ id: item.id, weightKg: 0, packs: Number(item.quantity || item.packs) }) : ({ id: item.id, weightKg: Number(item.weightKg), packs: Number(item.packs) });
+      }).filter(item => {
+        const product = productData.find(entry => entry.id === item.id);
+        return product && Number.isInteger(item.packs) && item.packs >= 1 && item.packs <= 50 && (product.unitPrice ? item.weightKg === 0 : [1, 2, 5, 10].includes(item.weightKg));
+      });
       drawSummary();
       if (!workerUrl) {
         button.disabled = true;

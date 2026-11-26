@@ -38,7 +38,7 @@
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
       if (!Array.isArray(saved)) return [];
-      return saved.filter(item => item && typeof item.id === "string" && [1, 2, 5, 10].includes(Number(item.weightKg)) && Number.isInteger(Number(item.quantity)) && Number(item.quantity) > 0)
+      return saved.filter(item => item && typeof item.id === "string" && (Number(item.weightKg) === 0 || [1, 2, 5, 10].includes(Number(item.weightKg))) && Number.isInteger(Number(item.quantity)) && Number(item.quantity) > 0)
         .map(item => ({ id: item.id, weightKg: Number(item.weightKg), quantity: Math.max(1, Math.min(50, Number(item.quantity))) }));
     } catch (_) { return []; }
   }
@@ -49,7 +49,7 @@
   }
 
   function productPrice(product, weightKg, quantity = 1) {
-    return product.regularPricePerKg * weightKg * quantity;
+    return product.unitPrice ? product.unitPrice * quantity : product.regularPricePerKg * weightKg * quantity;
   }
 
   function recommendedProducts() {
@@ -65,7 +65,7 @@
   function recommendationsMarkup() {
     const suggestions = recommendedProducts();
     if (!suggestions.length) return "";
-    return `<section class="shop-cart-recommendations" aria-label="Recommended products"><p class="eyebrow">A FEW GOOD ADDITIONS</p><h3>You may also like</h3><div class="shop-cart-recommend-list">${suggestions.map(product => `<article class="shop-cart-recommend-item"><img src="${imageUrl(imageForPack(product, 5))}" alt="" loading="lazy"><div class="shop-cart-recommend-copy"><h4>${escapeHtml(product.name)}</h4><p>1 kg · ${money(productPrice(product, 1))}</p></div><button type="button" class="shop-cart-recommend-add" data-recommend-add="${escapeHtml(product.id)}" aria-label="Add ${escapeHtml(product.name)}, 1 kg pack">Add <span aria-hidden="true">+</span></button></article>`).join("")}</div></section>`;
+    return `<section class="shop-cart-recommendations" aria-label="Recommended products"><p class="eyebrow">A FEW GOOD ADDITIONS</p><h3>You may also like</h3><div class="shop-cart-recommend-list">${suggestions.map(product => `<article class="shop-cart-recommend-item"><img src="${imageUrl(imageForPack(product, 5))}" alt="" loading="lazy"><div class="shop-cart-recommend-copy"><h4>${escapeHtml(product.name)}</h4><p>${product.unitPrice ? `${money(product.unitPrice)} each` : `1 kg · ${money(productPrice(product, 1))}`}</p></div><button type="button" class="shop-cart-recommend-add" data-recommend-add="${escapeHtml(product.id)}" aria-label="Add ${escapeHtml(product.name)}${product.unitPrice ? "" : ", 1 kg pack"}">Add <span aria-hidden="true">+</span></button></article>`).join("")}</div></section>`;
   }
 
   function packButtons(product, selected = 1, attribute = "data-pack-choice", disabledWeights = []) {
@@ -79,9 +79,9 @@
   function cardMarkup(product) {
     const img = imageForPack(product, 5);
     const alt = product.imageAlt || `${product.name} packaging`;
-    return `<article class="product-card shop-cart-card" data-product-card="${escapeHtml(product.id)}" data-category="${escapeHtml(product.category)}" data-price="${product.regularPricePerKg}" data-name="${escapeHtml(product.name.toLowerCase())}">
+    return `<article class="product-card shop-cart-card" data-product-card="${escapeHtml(product.id)}" data-category="${escapeHtml(product.category)}" data-price="${product.unitPrice || product.regularPricePerKg}" data-name="${escapeHtml(product.name.toLowerCase())}">
       <button class="shop-product-image-button" type="button" data-quickview-open="${escapeHtml(product.id)}" aria-label="View ${escapeHtml(product.name)} details and images"><div class="product-image"><img src="${imageUrl(img)}" alt="${escapeHtml(alt)}" loading="lazy"><span class="product-label">${escapeHtml(product.label || "Vraj Naturals")}</span><span class="shop-view-hint">Quick view</span></div></button>
-      <div class="product-card-info"><h3>${escapeHtml(product.name)}</h3><div class="product-meta"><span>${money(product.regularPricePerKg)} / kg</span></div></div>
+      <div class="product-card-info"><h3>${escapeHtml(product.name)}</h3><div class="product-meta"><span>${product.unitPrice ? `${money(product.unitPrice)} / item` : `${money(product.regularPricePerKg)} / kg`}</span></div></div>
       <button class="button button-primary product-order-button" data-add-product="${escapeHtml(product.id)}" type="button">Add to cart <span aria-hidden="true">+</span></button>
     </article>`;
   }
@@ -89,8 +89,8 @@
   function drawProducts() {
     if (!form) return;
     let shown = products.filter(p => p.available !== false && (filter === "all" || p.category === filter));
-    if (sort === "price-low") shown.sort((a, b) => a.regularPricePerKg - b.regularPricePerKg);
-    if (sort === "price-high") shown.sort((a, b) => b.regularPricePerKg - a.regularPricePerKg);
+    if (sort === "price-low") shown.sort((a, b) => (a.unitPrice || a.regularPricePerKg) - (b.unitPrice || b.regularPricePerKg));
+    if (sort === "price-high") shown.sort((a, b) => (b.unitPrice || b.regularPricePerKg) - (a.unitPrice || a.regularPricePerKg));
     if (sort === "name") shown.sort((a, b) => a.name.localeCompare(b.name));
     form.innerHTML = shown.map(cardMarkup).join("") || '<p class="muted">No products in this collection yet. Please check back soon.</p>';
   }
@@ -103,7 +103,7 @@
 
   function addProduct(id, weightKg, quantity) {
     const product = products.find(p => p.id === id && p.available !== false);
-    if (!product || !packsOptions.includes(Number(weightKg))) return;
+    if (!product || (product.unitPrice ? Number(weightKg) !== 0 : !packsOptions.includes(Number(weightKg)))) return;
     const returnTarget = quickview.open ? document.querySelector(`[data-quickview-open="${CSS.escape(id)}"]`) : document.activeElement;
     const key = cart.find(item => item.id === id && item.weightKg === Number(weightKg));
     if (key) key.quantity = Math.min(50, key.quantity + Number(quantity));
@@ -114,7 +114,7 @@
   }
 
   function renderCart() {
-    cart = cart.filter(item => products.some(p => p.id === item.id && p.available !== false));
+    cart = cart.filter(item => products.some(p => p.id === item.id && p.available !== false && (p.unitPrice ? item.weightKg === 0 : item.weightKg > 0)));
     const units = cart.reduce((sum, item) => sum + item.quantity, 0);
     const subtotal = cart.reduce((sum, item) => sum + productPrice(products.find(p => p.id === item.id), item.weightKg, item.quantity), 0);
     document.querySelectorAll("[data-cart-count]").forEach(node => node.textContent = String(units));
@@ -124,7 +124,8 @@
     list.innerHTML = (cart.length ? cart.map((item, index) => {
       const product = products.find(p => p.id === item.id);
       const disabledWeights = packsOptions.filter(weight => weight !== item.weightKg && cart.some((other, otherIndex) => otherIndex !== index && other.id === item.id && other.weightKg === weight && other.quantity + item.quantity > 50));
-      return `<article class="shop-cart-item" data-cart-index="${index}"><img src="${imageUrl(imageForPack(product, item.weightKg))}" alt="${escapeHtml(product.name)}, ${item.weightKg} kg pack" loading="lazy"><div class="shop-cart-item-copy"><h3>${escapeHtml(product.name)}</h3><p>${item.weightKg} kg pack · ${money(productPrice(product, item.weightKg))} each</p>${packButtons(product, item.weightKg, "data-line-pack-choice", disabledWeights)}<div class="shop-cart-item-actions"><div class="shop-stepper"><button type="button" data-line-change="-1" aria-label="Decrease ${escapeHtml(product.name)} ${item.weightKg} kg quantity">−</button><span aria-live="polite">${item.quantity}</span><button type="button" data-line-change="1" aria-label="Increase ${escapeHtml(product.name)} ${item.weightKg} kg quantity">+</button></div><button class="shop-remove" type="button" data-remove-line>Remove</button></div></div><strong class="shop-cart-line-total">${money(productPrice(product, item.weightKg, item.quantity))}</strong></article>`;
+      const unit = Boolean(product.unitPrice);
+      return `<article class="shop-cart-item" data-cart-index="${index}"><img src="${imageUrl(imageForPack(product, item.weightKg))}" alt="${escapeHtml(product.name)}${unit ? "" : `, ${item.weightKg} kg pack`}" loading="lazy"><div class="shop-cart-item-copy"><h3>${escapeHtml(product.name)}</h3><p>${unit ? "Each" : `${item.weightKg} kg pack`} · ${money(productPrice(product, item.weightKg))} each</p>${unit ? "" : packButtons(product, item.weightKg, "data-line-pack-choice", disabledWeights)}<div class="shop-cart-item-actions"><div class="shop-stepper"><button type="button" data-line-change="-1" aria-label="Decrease ${escapeHtml(product.name)} ${item.weightKg} kg quantity">−</button><span aria-live="polite">${item.quantity}</span><button type="button" data-line-change="1" aria-label="Increase ${escapeHtml(product.name)} ${item.weightKg} kg quantity">+</button></div><button class="shop-remove" type="button" data-remove-line>Remove</button></div></div><strong class="shop-cart-line-total">${money(productPrice(product, item.weightKg, item.quantity))}</strong></article>`;
     }).join("") : '<div class="shop-cart-empty"><h3>Your cart is waiting.</h3><p>Add something thoughtful from the collection.</p></div>') + recommendationsMarkup();
     drawer.querySelector("[data-cart-checkout]").disabled = !cart.length;
   }
@@ -174,10 +175,10 @@
     if (!activeProduct) return;
     lastFocus = document.activeElement;
     activeImage = 0;
-    activeImages = imagesForPack(activeProduct, 1);
+    activeImages = imagesForPack(activeProduct, activeProduct.unitPrice ? 0 : 1);
     const images = activeImages;
     const alt = activeProduct.imageAlt || `${activeProduct.name} packaging`;
-    quickview.querySelector("[data-quickview-content]").innerHTML = `<div class="quickview-gallery"><div class="quickview-main-image"><img data-quickview-main src="${imageUrl(images[0])}" alt="${escapeHtml(alt)}"><button class="quickview-arrow quickview-prev" type="button" data-gallery-prev aria-label="Previous product image" ${images.length < 2 ? "hidden" : ""}>‹</button><button class="quickview-arrow quickview-next" type="button" data-gallery-next aria-label="Next product image" ${images.length < 2 ? "hidden" : ""}>›</button></div><div class="quickview-thumbnails" ${images.length < 2 ? "hidden" : ""}>${images.map((path, i) => `<button type="button" data-gallery-index="${i}" aria-label="Show product image ${i + 1}" aria-pressed="${i === 0}" class="${i === 0 ? "is-active" : ""}"><img src="${imageUrl(path)}" alt=""></button>`).join("")}</div></div><div class="quickview-copy"><p class="eyebrow">${escapeHtml(activeProduct.label || "Vraj Naturals")}</p><h2 id="quickview-title">${escapeHtml(activeProduct.name)}</h2><p class="quickview-description">${escapeHtml(activeProduct.description || "")}</p><p class="quickview-price" data-quickview-price>${money(activeProduct.regularPricePerKg)} per kg</p><div class="quickview-controls"><div class="quickview-pack-control"><span>Pack size</span>${packButtons(activeProduct)}</div>${quantityControl(activeProduct, 1)}</div><p class="quickview-total" data-quickview-total>Total ${money(activeProduct.regularPricePerKg)}</p><button class="button button-primary quickview-add" type="button" data-quickview-add>Add to cart <span aria-hidden="true">+</span></button></div>`;
+    quickview.querySelector("[data-quickview-content]").innerHTML = `<div class="quickview-gallery"><div class="quickview-main-image"><img data-quickview-main src="${imageUrl(images[0])}" alt="${escapeHtml(alt)}"><button class="quickview-arrow quickview-prev" type="button" data-gallery-prev aria-label="Previous product image" ${images.length < 2 ? "hidden" : ""}>‹</button><button class="quickview-arrow quickview-next" type="button" data-gallery-next aria-label="Next product image" ${images.length < 2 ? "hidden" : ""}>›</button></div><div class="quickview-thumbnails" ${images.length < 2 ? "hidden" : ""}>${images.map((path, i) => `<button type="button" data-gallery-index="${i}" aria-label="Show product image ${i + 1}" aria-pressed="${i === 0}" class="${i === 0 ? "is-active" : ""}"><img src="${imageUrl(path)}" alt=""></button>`).join("")}</div></div><div class="quickview-copy"><p class="eyebrow">${escapeHtml(activeProduct.label || "Vraj Naturals")}</p><h2 id="quickview-title">${escapeHtml(activeProduct.name)}</h2><p class="quickview-description">${escapeHtml(activeProduct.description || "")}</p><p class="quickview-price" data-quickview-price>${activeProduct.unitPrice ? `${money(activeProduct.unitPrice)} each` : `${money(activeProduct.regularPricePerKg)} per kg`}</p><div class="quickview-controls">${activeProduct.unitPrice ? "" : `<div class="quickview-pack-control"><span>Pack size</span>${packButtons(activeProduct)}</div>`}${quantityControl(activeProduct, 1)}</div><p class="quickview-total" data-quickview-total>Total ${money(activeProduct.unitPrice || activeProduct.regularPricePerKg)}</p><button class="button button-primary quickview-add" type="button" data-quickview-add>Add to cart <span aria-hidden="true">+</span></button></div>`;
     setQuickviewImage(0);
     quickview.showModal();
     quickview.querySelector("[data-quickview-close]").focus();
@@ -193,15 +194,16 @@
 
   function updateQuickviewPrice() {
     if (!activeProduct) return;
-    const kg = Number(quickview.querySelector('[data-pack-choice][aria-pressed="true"]').dataset.packChoice);
+    const choice = quickview.querySelector('[data-pack-choice][aria-pressed="true"]');
+    const kg = activeProduct.unitPrice ? 0 : Number(choice?.dataset.packChoice || 1);
     const quantity = clampQuantity(quickview.querySelector("[data-quantity]"));
-    quickview.querySelector("[data-quickview-price]").textContent = `${money(activeProduct.regularPricePerKg)} per kg`;
+    quickview.querySelector("[data-quickview-price]").textContent = activeProduct.unitPrice ? `${money(activeProduct.unitPrice)} each` : `${money(activeProduct.regularPricePerKg)} per kg`;
     quickview.querySelector("[data-quickview-total]").textContent = `Total ${money(productPrice(activeProduct, kg, quantity))}`;
   }
 
   function updateQuickviewGallery() {
     if (!activeProduct) return;
-    const kg = Number(quickview.querySelector('[data-pack-choice][aria-pressed="true"]').dataset.packChoice);
+    const kg = activeProduct.unitPrice ? 0 : Number(quickview.querySelector('[data-pack-choice][aria-pressed="true"]').dataset.packChoice);
     activeImages = imagesForPack(activeProduct, kg);
     const thumbnails = quickview.querySelector(".quickview-thumbnails");
     thumbnails.innerHTML = activeImages.map((path, i) => `<button type="button" data-gallery-index="${i}" aria-label="Show product image ${i + 1}" aria-pressed="${i === 0}" class="${i === 0 ? "is-active" : ""}"><img src="${imageUrl(path)}" alt=""></button>`).join("");
@@ -219,6 +221,17 @@
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
+
+  document.addEventListener("error", event => {
+    const image = event.target;
+    if (!(image instanceof HTMLImageElement) || !image.closest(".product-image, .shop-cart-item, .shop-cart-recommend-item, .quickview-gallery")) return;
+    const placeholder = document.createElement("div");
+    placeholder.className = "product-placeholder";
+    placeholder.textContent = "Image coming soon";
+    placeholder.setAttribute("role", "img");
+    placeholder.setAttribute("aria-label", `${image.alt || "Product"} image coming soon`);
+    image.replaceWith(placeholder);
+  }, true);
 
   document.addEventListener("click", event => {
     const filterButton = event.target.closest("[data-filter]");
@@ -261,8 +274,8 @@
     const add = event.target.closest("[data-add-product]");
     if (add) { showQuickview(add.dataset.addProduct); return; }
     const recommendation = event.target.closest("[data-recommend-add]");
-    if (recommendation) { addProduct(recommendation.dataset.recommendAdd, 1, 1); return; }
-    if (event.target.closest("[data-quickview-add]")) { addProduct(activeProduct.id, quickview.querySelector('[data-pack-choice][aria-pressed="true"]').dataset.packChoice, clampQuantity(quickview.querySelector("[data-quantity]"))); return; }
+    if (recommendation) { const product = products.find(p => p.id === recommendation.dataset.recommendAdd); addProduct(recommendation.dataset.recommendAdd, product?.unitPrice ? 0 : 1, 1); return; }
+    if (event.target.closest("[data-quickview-add]")) { const choice = quickview.querySelector('[data-pack-choice][aria-pressed="true"]'); addProduct(activeProduct.id, activeProduct.unitPrice ? 0 : Number(choice.dataset.packChoice), clampQuantity(quickview.querySelector("[data-quantity]"))); return; }
     const qtyButton = event.target.closest("[data-quantity-change]");
     if (qtyButton) { const wrapper = qtyButton.closest(".shop-stepper"); const input = wrapper.querySelector("[data-quantity]"); input.value = Math.max(1, Math.min(50, Number(input.value || 1) + Number(qtyButton.dataset.quantityChange))); input.dispatchEvent(new Event("input", { bubbles: true })); return; }
     const change = event.target.closest("[data-line-change]");
@@ -276,9 +289,9 @@
     if (remove) { cart.splice(Number(remove.closest("[data-cart-index]").dataset.cartIndex), 1); saveCart(); return; }
     if (event.target.closest("[data-cart-checkout]")) {
       if (!cart.length) return;
-      try { sessionStorage.setItem(CHECKOUT_KEY, JSON.stringify(cart.map(item => ({ id: item.id, weightKg: item.weightKg, packs: item.quantity })))); }
+      try { sessionStorage.setItem(CHECKOUT_KEY, JSON.stringify(cart.map(item => item.weightKg === 0 ? ({ id: item.id, quantity: item.quantity }) : ({ id: item.id, weightKg: item.weightKg, packs: item.quantity })))); }
       catch (_) { /* The checkout URL still works when session storage is blocked for a single line. */ }
-      if (cart.length === 1) location.href = `/checkout.html?item=${encodeURIComponent(cart[0].id)}&kg=${cart[0].weightKg}&packs=${cart[0].quantity}`;
+      if (cart.length === 1) location.href = cart[0].weightKg === 0 ? `/checkout.html?item=${encodeURIComponent(cart[0].id)}&quantity=${cart[0].quantity}` : `/checkout.html?item=${encodeURIComponent(cart[0].id)}&kg=${cart[0].weightKg}&packs=${cart[0].quantity}`;
       else location.href = "/checkout.html";
     }
   });

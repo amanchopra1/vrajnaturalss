@@ -335,7 +335,7 @@ function sendOrderEmail_(sheet, row, kind, event) {
   ].filter(Boolean).join("\n");
   const itemRows = order.itemsList.map(item => "<tr>" +
     "<td style=\"padding:10px;border-bottom:1px solid #e7e2d7\">" + escapeHtml_(item.name || item.id || "Item") + "</td>" +
-    "<td style=\"padding:10px;border-bottom:1px solid #e7e2d7;text-align:center\">" + Number(item.weightKg || 0) + " kg × " + Number(item.packs || 0) + " pack(s)</td>" +
+    "<td style=\"padding:10px;border-bottom:1px solid #e7e2d7;text-align:center\">" + (item.unitLabel ? "× " + Number(item.quantity || 0) + " " + escapeHtml_(item.unitLabel) : Number(item.weightKg || 0) + " kg × " + Number(item.packs || 0) + " pack(s)") + "</td>" +
     "<td style=\"padding:10px;border-bottom:1px solid #e7e2d7;text-align:right\">₹" + formatInr_(item.lineTotal) + "</td></tr>").join("");
   const htmlBody = "<div style=\"font-family:Arial,sans-serif;color:#292d29;line-height:1.6;max-width:640px;margin:auto\">" +
     "<h1 style=\"color:#173d24;font-size:24px\">" + (oneTimeOrder ? (successful ? "Order confirmed" : "Payment update") : (successful ? "Subscription confirmed" : "Payment update")) + "</h1>" +
@@ -454,8 +454,8 @@ function orderRecord_(sheet, row) {
   try { itemsList = JSON.parse(itemsJson); } catch (_) { itemsList = []; }
   if (!Array.isArray(itemsList)) itemsList = [];
   const itemLines = itemsList.length ? itemsList.map(item =>
-    "• " + String(item.name || item.id || "Item") + " — " + Number(item.weightKg || 0) + " kg × " + Number(item.packs || 0) +
-    " pack(s) — ₹" + formatInr_(item.lineTotal)
+    "• " + String(item.name || item.id || "Item") + (item.unitLabel ? " × " + Number(item.quantity || 0) + " " + String(item.unitLabel) : " — " + Number(item.weightKg || 0) + " kg × " + Number(item.packs || 0) + " pack(s)") +
+    " — ₹" + formatInr_(item.lineTotal)
   ).join("\n") : itemsJson;
   return {
     orderId: String(v[0]), name: String(v[4]), email: String(v[5]), phone: String(v[6]),
